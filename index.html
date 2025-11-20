@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Web MOBA: 最终修复版</title>
+    <title>Web MOBA: 动态复活版</title>
     <style>
         * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
@@ -138,20 +138,15 @@
         }
         function spawnParticles(x,y,c,n,spd=2) { for(let i=0;i<n;i++) particles.push(new Particle(x,y,c,spd,30)); }
 
-        // --- 基础实体 (小兵/子弹/塔基类) ---
+        // --- 基础实体 ---
         class Entity {
             constructor(x,y,r,c,team,hp,maxHp) {
                 this.x=x; this.y=y; this.r=r; this.c=c; this.team=team;
                 this.hp=hp; this.maxHp=maxHp; this.dead=false; this.buffs=[];
             }
             draw(ctx) {
-                // 1. 阴影
                 ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(this.x, this.y+this.r*0.8, this.r, this.r*0.4, 0, 0, Math.PI*2); ctx.fill();
-                
-                // 2. 身体 (修复点：加上这一句，小兵就出来了)
                 ctx.fillStyle = this.c; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill();
-
-                // 3. 血条
                 let pct = Math.max(0, this.hp/this.maxHp);
                 ctx.fillStyle='#222'; ctx.fillRect(this.x-15, this.y-this.r-10, 30, 4);
                 ctx.fillStyle=this.team==='blue'?'#00eaff':'#ff4757'; ctx.fillRect(this.x-15, this.y-this.r-10, 30*pct, 4);
@@ -168,12 +163,14 @@
             }
         }
 
-        // --- 英雄类 (独立绘制逻辑) ---
+        // --- 英雄类 (含动态复活逻辑) ---
         class Hero extends Entity {
             constructor(x,y,team,type) {
                 super(x,y,20,HEROES[type].color,team,HEROES[type].hp,HEROES[type].hp);
                 this.cfg=HEROES[type]; this.type=type; this.cds={Q:0,W:0,E:0,R:0,AA:0};
                 this.face=team==='blue'?-Math.PI/2:Math.PI/2; this.spinAngle=0;
+                this.deathCount = 0; // 死亡次数
+                this.respawnTimer = 0; // 复活倒计时 (帧)
             }
             update() {
                 for(let k in this.cds) if(this.cds[k]>0) this.cds[k]--;
@@ -183,14 +180,38 @@
                     if(this.buffs[i].timer<=0) this.buffs.splice(i,1);
                 }
             }
-            // 重写绘制，不调用super.draw以免重复绘制身体
+            // 重写hit，加入动态复活逻辑
+            hit(dmg) {
+                super.hit(dmg);
+                if(this.dead && this.respawnTimer <= 0) {
+                    this.deathCount++;
+                    // 基础复活时间: 5秒(300帧)
+                    // 每次死亡增加: 1秒(60帧)
+                    // 公式: 300 + (次数-1) * 60
+                    this.respawnTimer = 300 + (this.deathCount - 1) * 60;
+                }
+            }
             draw(ctx) {
+                // 复活倒计时显示
+                if(this.dead) {
+                    if(this.respawnTimer > 0) {
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                        ctx.font = 'bold 30px Arial';
+                        ctx.textAlign = 'center';
+                        // 阴影
+                        ctx.shadowColor = 'black'; ctx.shadowBlur = 5;
+                        ctx.fillText("复活: " + Math.ceil(this.respawnTimer/60) + "s", this.x, this.y);
+                        ctx.restore();
+                    }
+                    return; 
+                }
+
                 ctx.save(); ctx.translate(this.x, this.y);
                 
                 // 阴影
                 ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(0, this.r*0.8, this.r, this.r*0.4, 0, 0, Math.PI*2); ctx.fill();
 
-                // 旋风特效
                 if(this.buffs.find(b=>b.type==='spin')) {
                     ctx.save(); ctx.rotate(this.spinAngle);
                     ctx.fillStyle = 'rgba(255, 80, 80, 0.2)'; 
@@ -201,7 +222,6 @@
                     ctx.restore();
                 }
 
-                // 英雄本体形状
                 ctx.rotate(this.face); ctx.fillStyle=this.c;
                 if(this.type==='mage') {
                     ctx.shadowBlur=10; ctx.shadowColor=this.c; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill();
@@ -213,7 +233,6 @@
                 }
                 ctx.shadowBlur=0; ctx.restore();
 
-                // 血条
                 let pct = Math.max(0, this.hp/this.maxHp);
                 ctx.fillStyle='#222'; ctx.fillRect(this.x-15, this.y-this.r-10, 30, 4);
                 ctx.fillStyle=this.team==='blue'?'#00eaff':'#ff4757'; ctx.fillRect(this.x-15, this.y-this.r-10, 30*pct, 4);
@@ -225,18 +244,13 @@
             resize();
             let cx=canvas.width/2, h=canvas.height;
             
-            // 初始化防御塔数据
             blueTower = new Entity(cx, h-60, 30, '#0099ff', 'blue', 5000, 5000);
             redTower = new Entity(cx, 60, 30, '#ff3333', 'red', 5000, 5000);
             
-            // 防御塔自定义绘制函数
             const towerDraw = function(ctx) {
                 if(this.dead) return;
-                // 底座
                 ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(this.x,this.y,30,0,Math.PI*2); ctx.fill();
-                // 核心发光
                 ctx.shadowBlur=20; ctx.shadowColor=this.c; ctx.fillStyle=this.c; ctx.beginPath(); ctx.arc(this.x,this.y,20,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
-                // 血条
                 let pct = Math.max(0, this.hp/this.maxHp);
                 ctx.fillStyle='#222'; ctx.fillRect(this.x-20, this.y-45, 40, 5);
                 ctx.fillStyle=this.c; ctx.fillRect(this.x-20, this.y-45, 40*pct, 5);
@@ -251,8 +265,19 @@
         }
 
         function update() {
-            if(player.dead && Math.random()<0.01) {player.dead=false;player.hp=player.maxHp;player.x=blueTower.x;player.y=blueTower.y;}
-            if(enemy.dead && Math.random()<0.01) {enemy.dead=false;enemy.hp=enemy.maxHp;enemy.x=redTower.x;enemy.y=redTower.y;}
+            // --- 复活逻辑 (倒计时) ---
+            if(player.dead) {
+                player.respawnTimer--;
+                if(player.respawnTimer <= 0) {
+                    player.dead = false; player.hp = player.maxHp; player.x = blueTower.x; player.y = blueTower.y;
+                }
+            }
+            if(enemy.dead) {
+                enemy.respawnTimer--;
+                if(enemy.respawnTimer <= 0) {
+                    enemy.dead = false; enemy.hp = enemy.maxHp; enemy.x = redTower.x; enemy.y = redTower.y;
+                }
+            }
 
             if(!player.dead) {
                 player.update();
@@ -310,7 +335,6 @@
                 }
             });
 
-            // 小兵 (倒序)
             for(let i=units.length-1; i>=0; i--) {
                 let u = units[i];
                 if(u.dead){units.splice(i,1); continue;}
@@ -327,7 +351,6 @@
                 units.forEach(o=>{ if(u!==o && Math.hypot(u.x-o.x, u.y-o.y)<20){ let a=Math.atan2(u.y-o.y, u.x-o.x); u.x+=Math.cos(a)*0.5; u.y+=Math.sin(a)*0.5; } });
             }
 
-            // 子弹 (倒序)
             for(let i=bullets.length-1; i>=0; i--) {
                 let b = bullets[i];
                 b.life--;
@@ -346,7 +369,6 @@
                 if(b.style!=='orb' && Math.random()<0.5) particles.push(new Particle(b.x, b.y, b.c, 0.5, 10));
             }
 
-            // 特效 (倒序)
             for(let i=effects.length-1; i>=0; i--) {
                 let e = effects[i];
                 e.life--;
@@ -377,8 +399,8 @@
 
             units.forEach(u => u.draw(ctx));
             particles.forEach(p => p.draw(ctx));
-            if(!player.dead) player.draw(ctx);
-            if(!enemy.dead) enemy.draw(ctx);
+            if(!player.dead || player.respawnTimer>0) player.draw(ctx);
+            if(!enemy.dead || enemy.respawnTimer>0) enemy.draw(ctx);
 
             bullets.forEach(b => {
                 ctx.fillStyle=b.c;
