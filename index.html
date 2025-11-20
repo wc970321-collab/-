@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <!-- 强制竖屏，禁止缩放 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Web MOBA: 竖屏版</title>
+    <title>Web MOBA: 优化版</title>
     <style>
         * {
             box-sizing: border-box;
-            touch-action: none; /* 禁止浏览器默认滑动 */
+            touch-action: none;
             -webkit-user-select: none;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -16,185 +16,112 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: #000;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: sans-serif;
             overflow: hidden;
-            display: flex; flex-direction: column; /* 垂直布局 */
+            display: flex; flex-direction: column;
         }
 
-        /* --- 1. 游戏画面区域 (上 65%) --- */
+        /* 游戏区 65% */
         #game-container {
-            width: 100%;
-            height: 65%;
-            position: relative;
-            background: #161616;
-            border-bottom: 2px solid #333;
+            width: 100%; height: 65%;
+            position: relative; background: #161616; border-bottom: 2px solid #333;
         }
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* UI 信息层 (血量、返回按钮) */
-        #hud-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-        }
-        #top-bar {
-            display: flex; justify-content: space-between; padding: 10px;
-            color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black;
-        }
-        .team-blue { color: #4ecdc4; }
-        .team-red { color: #e74c3c; }
-        #home-btn {
-            pointer-events: auto; cursor: pointer; font-size: 20px;
-        }
+        /* HUD */
+        #hud-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #top-bar { display: flex; justify-content: space-between; padding: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black; font-size: 12px;}
+        .team-blue { color: #4ecdc4; } .team-red { color: #e74c3c; }
 
-        /* --- 2. 操控区域 (下 35%) --- */
+        /* 控制区 35% */
         #controls-area {
-            width: 100%;
-            height: 35%; /* 剩余空间 */
-            background-color: #222;
-            position: relative;
-            display: flex;
+            width: 100%; height: 35%; background-color: #222;
+            position: relative; display: flex;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
         }
-
-        /* 左侧：摇杆区 */
+        /* 摇杆 */
         #joystick-container {
-            width: 40%; height: 100%;
-            position: relative;
+            width: 40%; height: 100%; position: relative;
             display: flex; align-items: center; justify-content: center;
         }
         #joystick-base {
-            width: 120px; height: 120px;
-            background: rgba(0,0,0,0.3);
-            border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 50%;
-            position: relative;
+            width: 110px; height: 110px; background: rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; position: relative;
         }
         #joystick-stick {
-            width: 50px; height: 50px;
-            background: linear-gradient(135deg, #4ecdc4, #2a9d8f);
-            border-radius: 50%;
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            width: 40px; height: 40px; background: linear-gradient(135deg, #4ecdc4, #2a9d8f);
+            border-radius: 50%; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
-        /* 右侧：技能区 */
-        #skills-container {
-            width: 60%; height: 100%;
-            position: relative;
-        }
-        /* 技能按钮布局：弧形或者网格，这里用菱形布局方便拇指 */
+        /* 技能区 */
+        #skills-container { width: 60%; height: 100%; position: relative; }
         .skill-btn {
-            position: absolute;
-            width: 55px; height: 55px;
-            background: #333;
-            border: 2px solid #555;
-            border-radius: 50%;
-            color: white; font-weight: bold;
+            position: absolute; width: 50px; height: 50px; background: #333;
+            border: 2px solid #555; border-radius: 50%; color: white;
             display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
-            box-shadow: 0 4px 5px rgba(0,0,0,0.4);
+            font-weight: bold; box-shadow: 0 4px 5px rgba(0,0,0,0.4);
         }
         .skill-btn:active { background: #555; transform: scale(0.95); }
-        .btn-r { width: 65px; height: 65px; border-color: #ffd700; background: #3a3a00; font-size: 20px; }
         
-        /* 技能位置定位 (基于右下角) */
-        #btn-aa { bottom: 30px; right: 30px; width: 70px; height: 70px; background: #444; font-size: 12px;} /* 普攻大一点 */
-        #btn-q { bottom: 30px; right: 110px; }
-        #btn-w { bottom: 100px; right: 100px; }
-        #btn-e { bottom: 120px; right: 30px; }
-        #btn-r { bottom: 180px; right: 10px; width: 50px; height: 50px; border-color: gold;} 
-        
-        /* 修正一下布局，更符合拇指工学 */
-        /* 以右下角为原点 */
-        .p-q { bottom: 20px; right: 130px; }
-        .p-w { bottom: 90px; right: 110px; }
-        .p-e { bottom: 130px; right: 40px; }
-        .p-r { bottom: 160px; right: 120px; width: 50px!important; height: 50px!important; background: #440!important;} 
-        .p-aa{ bottom: 30px; right: 30px; width: 80px; height: 80px; background: #555; border-color:#888;} 
+        /* 布局调整 */
+        .p-q { bottom: 20px; right: 120px; }
+        .p-w { bottom: 80px; right: 100px; }
+        .p-e { bottom: 120px; right: 30px; }
+        .p-r { bottom: 150px; right: 110px; width: 45px!important; height: 45px!important; border-color: gold; background: #440;} 
+        .p-aa{ bottom: 20px; right: 20px; width: 75px!important; height: 75px!important; background: #444; font-size: 20px;} 
 
         .cd-overlay {
             position: absolute; top:0; left:0; width:100%; height:100%;
             border-radius: 50%; background: rgba(0,0,0,0.7);
-            display: flex; align-items: center; justify-content: center;
-            display: none;
+            display: none; align-items: center; justify-content: center; color: #fff;
         }
 
-        /* --- 弹窗样式 --- */
+        /* 弹窗 */
         .overlay-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            z-index: 999;
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 999;
         }
         .hidden { display: none !important; }
-        
-        .hero-select-box { display: flex; gap: 15px; margin-top: 20px; }
-        .h-card { 
-            width: 80px; padding: 15px; background: #222; border: 1px solid #444; 
-            border-radius: 8px; text-align: center; color: white; 
-        }
-        .h-card:active { background: #444; border-color: #fff; }
-        
-        h1 { color: #ffd700; margin: 0 0 20px 0; font-size: 24px; }
-        .btn-main { padding: 12px 30px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 6px; margin-top: 20px; }
-
+        .h-card { width: 80px; padding: 15px; background: #222; border: 1px solid #444; border-radius: 8px; text-align: center; color: white; margin: 5px;}
+        h1 { color: #ffd700; margin-bottom: 20px; font-size: 24px; }
+        .btn-main { padding: 10px 25px; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 6px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <!-- 选人界面 -->
     <div id="selection-screen" class="overlay-screen">
-        <h1>选择你的英雄</h1>
-        <div class="hero-select-box">
-            <div class="h-card" onclick="startGame('mage')">
-                <div style="font-size:30px; margin-bottom:10px">🔵</div>
-                <div>法师</div>
-            </div>
-            <div class="h-card" onclick="startGame('shooter')">
-                <div style="font-size:30px; margin-bottom:10px">🏹</div>
-                <div>射手</div>
-            </div>
-            <div class="h-card" onclick="startGame('warrior')">
-                <div style="font-size:30px; margin-bottom:10px">🛡️</div>
-                <div>战士</div>
-            </div>
+        <h1>选择英雄</h1>
+        <div style="display:flex;">
+            <div class="h-card" onclick="startGame('mage')">🔵<br>法师</div>
+            <div class="h-card" onclick="startGame('shooter')">🏹<br>射手</div>
+            <div class="h-card" onclick="startGame('warrior')">🛡️<br>战士</div>
         </div>
     </div>
 
-    <!-- 结算界面 -->
     <div id="end-screen" class="overlay-screen hidden">
-        <h1 id="end-msg">游戏结束</h1>
-        <button class="btn-main" onclick="location.reload()">返回主页</button>
+        <h1 id="end-msg">结束</h1>
+        <button class="btn-main" onclick="location.reload()">返回</button>
     </div>
 
-    <!-- 游戏主界面 -->
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="hud-layer">
             <div id="top-bar">
-                <div id="home-btn" onclick="location.reload()">🏠</div>
-                <div class="team-red">敌方塔: <span id="hp-red">5000</span></div>
+                <div onclick="location.reload()">🏠</div>
+                <div class="team-red">敌塔: <span id="hp-red">5000</span></div>
             </div>
-            <div style="position:absolute; bottom:10px; left:10px; font-size:12px; font-weight:bold;" class="team-blue">我方塔: <span id="hp-blue">5000</span></div>
+            <div style="position:absolute; bottom:10px; left:10px;" class="team-blue">我塔: <span id="hp-blue">5000</span></div>
         </div>
     </div>
 
-    <!-- 底部操控区 -->
     <div id="controls-area">
-        <!-- 摇杆 -->
         <div id="joystick-container">
-            <div id="joystick-base">
-                <div id="joystick-stick"></div>
-            </div>
+            <div id="joystick-base"><div id="joystick-stick"></div></div>
         </div>
-        <!-- 技能 -->
         <div id="skills-container">
-            <!-- 普攻键 -->
             <div class="skill-btn p-aa" ontouchstart="handleSkill(event, 'AA')">⚔️</div>
-            <!-- 技能键 -->
             <div class="skill-btn p-q" ontouchstart="handleSkill(event, 'Q')">Q<div id="cd-q" class="cd-overlay"></div></div>
             <div class="skill-btn p-w" ontouchstart="handleSkill(event, 'W')">W<div id="cd-w" class="cd-overlay"></div></div>
             <div class="skill-btn p-e" ontouchstart="handleSkill(event, 'E')">E<div id="cd-e" class="cd-overlay"></div></div>
@@ -205,9 +132,6 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // --- 核心：调整画布尺寸 ---
-        // 画布只占据上方 div 的大小，而不是全屏
         const gameContainer = document.getElementById('game-container');
         
         function resize() {
@@ -217,99 +141,120 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- 游戏逻辑 ---
+        // --- 配置参数 (速度全面降低) ---
+        const CONFIG = {
+            speed: {
+                hero: { mage: 2.0, shooter: 2.2, warrior: 2.0 },
+                minion: 0.8,
+                bullet: 5.0
+            },
+            spawnRate: 500 // 约8秒生成一波 (60fps)
+        };
+
+        const HEROES = {
+            mage: { hp:900, speed: CONFIG.speed.hero.mage, cd:{Q:40,W:300,E:180,R:600} },
+            shooter: { hp:700, speed: CONFIG.speed.hero.shooter, cd:{Q:20,W:180,E:300,R:900} },
+            warrior: { hp:1600, speed: CONFIG.speed.hero.warrior, cd:{Q:30,W:240,E:360,R:700} }
+        };
+
         let gameState = 'MENU';
         let player, enemy, blueTower, redTower;
         let units=[], bullets=[], effects=[], texts=[];
-        let joystick = { active:false, dx:0, dy:0, angle: -Math.PI/2 }; // 默认朝上
+        let joystick = { active:false, dx:0, dy:0, angle: -Math.PI/2 };
 
-        // 数据配置
-        const HEROES = {
-            mage: { hp:900, speed:3.5, range:200, cd:{Q:40,W:300,E:180,R:600} },
-            shooter: { hp:700, speed:4.0, range:350, cd:{Q:20,W:180,E:300,R:900} },
-            warrior: { hp:1600, speed:3.8, range:80, cd:{Q:30,W:240,E:360,R:700} }
-        };
-
-        // --- 类 ---
+        // --- 实体类 ---
         class Entity {
             constructor(x,y,r,c,team,hp,maxHp) {
                 this.x=x; this.y=y; this.r=r; this.c=c; this.team=team;
                 this.hp=hp; this.maxHp=maxHp; this.dead=false;
+                this.pushX=0; this.pushY=0; // 用于碰撞推挤
             }
             draw(ctx) {
-                // 血条
-                let pct = this.hp/this.maxHp;
+                // 绘制血条
+                let pct = Math.max(0, this.hp/this.maxHp);
                 ctx.fillStyle='#333'; ctx.fillRect(this.x-15, this.y-this.r-8, 30, 4);
                 ctx.fillStyle=this.team==='blue'?'#4ecdc4':'#e74c3c'; ctx.fillRect(this.x-15, this.y-this.r-8, 30*pct, 4);
             }
             hit(dmg) {
                 if(this.dead) return;
                 this.hp-=dmg;
-                texts.push({x:this.x, y:this.y-20, val:Math.floor(dmg), life:30});
-                if(this.hp<=0) { this.dead=true; this.hp=0; effects.push({x:this.x, y:this.y, r:this.r*2, c:this.c, life:20, type:'boom'}); }
+                texts.push({x:this.x, y:this.y-20, val:Math.floor(dmg), life:40});
+                if(this.hp<=0) {
+                    this.dead=true; this.hp=0;
+                    effects.push({type:'explode', x:this.x, y:this.y, r:this.r*1.5, c:this.c, life:20});
+                }
             }
         }
 
         class Hero extends Entity {
             constructor(x,y,team,type) {
-                super(x,y, 20, team==='blue'?'#3498db':'#e74c3c', team, HEROES[type].hp, HEROES[type].hp);
+                super(x,y, 18, team==='blue'?'#3498db':'#e74c3c', team, HEROES[type].hp, HEROES[type].hp);
                 this.cfg = HEROES[type];
                 this.type = type;
                 this.cds = {Q:0,W:0,E:0,R:0,AA:0};
-                this.face = team==='blue'? -Math.PI/2 : Math.PI/2; // 蓝队朝上，红队朝下
+                this.face = team==='blue'? -Math.PI/2 : Math.PI/2; 
             }
             update() {
                 for(let k in this.cds) if(this.cds[k]>0) this.cds[k]--;
             }
             draw(ctx) {
                 ctx.save(); ctx.translate(this.x, this.y);
-                // 箭头
+                // 朝向指示器
                 ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(this.face)*30, Math.sin(this.face)*30); 
-                ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.stroke();
+                ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2; ctx.stroke();
                 
                 ctx.fillStyle=this.c;
                 if(this.type==='mage') { ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill(); }
-                else if(this.type==='warrior') ctx.fillRect(-15,-15,30,30);
+                else if(this.type==='warrior') ctx.fillRect(-14,-14,28,28);
                 else { ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(12,10);ctx.lineTo(-12,10);ctx.fill(); }
                 ctx.restore();
                 super.draw(ctx);
             }
         }
 
-        // --- 核心：竖屏地图逻辑 ---
-        // 蓝塔在底部(canvas.height - 80)，红塔在顶部(80)
+        // --- 游戏初始化 ---
         function initGame(heroType) {
             document.getElementById('selection-screen').classList.add('hidden');
-            resize(); // 确保尺寸正确
+            resize();
 
             let cx = canvas.width/2;
             let h = canvas.height;
 
-            blueTower = new Entity(cx, h-80, 30, '#3498db', 'blue', 5000, 5000);
-            redTower = new Entity(cx, 80, 30, '#e74c3c', 'red', 5000, 5000);
+            // 初始化塔
+            blueTower = {x:cx, y:h-60, r:30, c:'#3498db', team:'blue', hp:5000, maxHp:5000, dead:false, spawnT:0, atkT:0};
+            redTower = {x:cx, y:60, r:30, c:'#e74c3c', team:'red', hp:5000, maxHp:5000, dead:false, spawnT:0, atkT:0};
             
-            player = new Hero(cx, h-150, 'blue', heroType);
-            enemy = new Hero(cx, 150, 'red', 'warrior'); // 敌人默认战士
+            // 塔的方法绑定
+            [blueTower, redTower].forEach(t => {
+                t.draw = Entity.prototype.draw.bind(t);
+                t.hit = Entity.prototype.hit.bind(t);
+            });
+
+            player = new Hero(cx, h-120, 'blue', heroType);
+            enemy = new Hero(cx, 120, 'red', 'warrior');
 
             units=[]; bullets=[]; effects=[]; texts=[];
             gameState = 'PLAYING';
             loop();
         }
 
+        // --- 主循环 ---
         function update() {
-            if(player.dead) { if(Math.random()<0.01){player.dead=false; player.hp=player.maxHp; player.x=blueTower.x; player.y=blueTower.y;} }
-            else {
+            // 复活逻辑
+            if(player.dead && Math.random()<0.005) {player.dead=false; player.hp=player.maxHp; player.x=blueTower.x; player.y=blueTower.y;}
+            if(enemy.dead && Math.random()<0.005) {enemy.dead=false; enemy.hp=enemy.maxHp; enemy.x=redTower.x; enemy.y=redTower.y;}
+
+            // 玩家移动
+            if(!player.dead) {
                 player.update();
-                // 玩家移动
                 if(joystick.active) {
                     player.x += joystick.dx * player.cfg.speed;
                     player.y += joystick.dy * player.cfg.speed;
                     player.face = joystick.angle;
-                    // 边界限制
-                    player.x = Math.max(20, Math.min(canvas.width-20, player.x));
-                    player.y = Math.max(20, Math.min(canvas.height-20, player.y));
+                    player.x = Math.max(15, Math.min(canvas.width-15, player.x));
+                    player.y = Math.max(15, Math.min(canvas.height-15, player.y));
                 }
-                // UI CD
+                // UI CD更新
                 ['Q','W','E','R'].forEach(k=>{
                     let div = document.getElementById('cd-'+k.toLowerCase());
                     if(player.cds[k]>0) { div.style.display='flex'; div.innerText = Math.ceil(player.cds[k]/60); }
@@ -317,205 +262,252 @@
                 });
             }
 
+            // 敌人简单AI
             if(!enemy.dead) {
                 enemy.update();
-                // 简单AI：竖向进攻
-                let dist = Math.hypot(player.x-enemy.x, player.y-enemy.y);
-                let tx = player.x, ty = player.y;
-                
-                if(enemy.hp < enemy.maxHp*0.3) { tx=redTower.x; ty=redTower.y; } // 撤退
-                else if(dist > 300) { tx=blueTower.x; ty=blueTower.y; } // 推塔
+                let d = Math.hypot(player.x-enemy.x, player.y-enemy.y);
+                let tx = blueTower.x, ty = blueTower.y; // 默认推塔
+                if(enemy.hp<enemy.maxHp*0.3) { tx=redTower.x; ty=redTower.y; } // 撤退
+                else if(d<300) { tx=player.x; ty=player.y; } // 追人
                 
                 let ang = Math.atan2(ty-enemy.y, tx-enemy.x);
-                if(Math.hypot(tx-enemy.x, ty-enemy.y)>50) {
-                    enemy.x += Math.cos(ang)*2; enemy.y += Math.sin(ang)*2;
+                if(Math.hypot(tx-enemy.x, ty-enemy.y)>60) {
+                    enemy.x += Math.cos(ang)*enemy.cfg.speed; enemy.y += Math.sin(ang)*enemy.cfg.speed;
                     enemy.face = ang;
                 }
-                // AI 攻击
-                if(enemy.cds.AA<=0 && dist < 100) {
-                    bullets.push({x:enemy.x, y:enemy.y, vx:Math.cos(ang)*6, vy:Math.sin(ang)*6, dmg:30, team:'red', life:30, r:5, c:'red'});
-                    enemy.cds.AA = 60;
+                // AI 普攻
+                if(enemy.cds.AA<=0 && d < 150) {
+                    bullets.push({x:enemy.x, y:enemy.y, vx:Math.cos(ang)*CONFIG.speed.bullet, vy:Math.sin(ang)*CONFIG.speed.bullet, dmg:30, team:'red', life:60, r:5, c:'red'});
+                    enemy.cds.AA = 80;
                 }
-            } else if(Math.random()<0.01) { enemy.dead=false; enemy.hp=enemy.maxHp; enemy.x=redTower.x; enemy.y=redTower.y; }
+            }
 
-            // 生成小兵 (垂直路线)
-            if(!blueTower.dead && Math.random()<0.01) units.push(new Entity(blueTower.x+(Math.random()-0.5)*40, blueTower.y-40, 8, '#4ecdc4', 'blue', 100, 100));
-            if(!redTower.dead && Math.random()<0.01) units.push(new Entity(redTower.x+(Math.random()-0.5)*40, redTower.y+40, 8, '#ff6b6b', 'red', 100, 100));
-
-            // 单位移动
-            units.forEach((u,i) => {
-                if(u.dead) return;
-                let targetY = u.team==='blue' ? 80 : canvas.height-80; // 目标是对方塔Y坐标
-                let t = findNearest(u);
-                if(t && Math.hypot(t.x-u.x, t.y-u.y)<100) { // 遇到敌人
-                     u.x += (t.x-u.x)*0.02; u.y += (t.y-u.y)*0.02;
-                     if(Math.random()<0.05) bullets.push({x:u.x, y:u.y, vx:(t.x-u.x)*0.05, vy:(t.y-u.y)*0.05, dmg:10, team:u.team, life:20, r:3, c:u.c});
-                } else {
-                    u.y += (targetY - u.y > 0 ? 1 : -1) * 1.5; // 垂直进军
-                    u.x += (canvas.width/2 - u.x) * 0.01; // 向中路靠拢
+            // 塔逻辑 (生成兵 + 攻击)
+            [blueTower, redTower].forEach(t => {
+                if(t.dead) return;
+                // 1. 生成兵
+                t.spawnT++;
+                if(t.spawnT > CONFIG.spawnRate) {
+                    // 一次生成2个兵，避免太多
+                    for(let i=0; i<2; i++) units.push(new Entity(t.x+(i-0.5)*30, t.y + (t.team==='blue'?-40:40), 10, t.c==='#3498db'?'#4ecdc4':'#ff6b6b', t.team, 120, 120));
+                    t.spawnT = 0;
                 }
-                if(u.dead) units.splice(i,1);
+                // 2. 攻击
+                t.atkT--;
+                if(t.atkT <= 0) {
+                    let target = findNearest(t, 300);
+                    if(target) {
+                        let a = Math.atan2(target.y-t.y, target.x-t.x);
+                        bullets.push({x:t.x, y:t.y, vx:Math.cos(a)*6, vy:Math.sin(a)*6, dmg:80, team:t.team, life:60, r:8, c:t.c});
+                        t.atkT = 60; // 1秒一发
+                    }
+                }
             });
 
-            // 子弹
+            // 小兵逻辑 (移动 + 防重叠)
+            units.forEach((u,i) => {
+                if(u.dead) { units.splice(i,1); return; }
+                
+                // 寻找目标
+                let t = findNearest(u, 200);
+                let targetX = u.team==='blue' ? redTower.x : blueTower.x;
+                let targetY = u.team==='blue' ? redTower.y : blueTower.y;
+                
+                if(t) {
+                    // 有敌人就靠近
+                    if(Math.hypot(t.x-u.x, t.y-u.y) < 80) {
+                        // 射程内，开火(简单概率)
+                        if(Math.random()<0.02) bullets.push({x:u.x, y:u.y, vx:(t.x-u.x)*0.03, vy:(t.y-u.y)*0.03, dmg:10, team:u.team, life:30, r:3, c:u.c});
+                    } else {
+                        u.x += (t.x-u.x)*0.01; u.y += (t.y-u.y)*0.01;
+                    }
+                } else {
+                    // 无敌人推塔
+                    let ang = Math.atan2(targetY-u.y, targetX-u.x);
+                    u.x += Math.cos(ang) * CONFIG.speed.minion;
+                    u.y += Math.sin(ang) * CONFIG.speed.minion;
+                }
+
+                // 防重叠 (Boids separation)
+                units.forEach(other => {
+                    if(u !== other && !other.dead) {
+                        let dist = Math.hypot(u.x-other.x, u.y-other.y);
+                        if(dist < 20) { // 挤在一起了
+                            let pushAng = Math.atan2(u.y-other.y, u.x-other.x);
+                            u.x += Math.cos(pushAng) * 0.5;
+                            u.y += Math.sin(pushAng) * 0.5;
+                        }
+                    }
+                });
+            });
+
+            // 子弹逻辑
             bullets.forEach((b,i) => {
                 b.x+=b.vx; b.y+=b.vy; b.life--;
-                let hit = checkHit(b);
-                if(hit) { hit.hit(b.dmg); b.life=0; }
+                let t = checkHit(b);
+                if(t) { t.hit(b.dmg); b.life=0; }
                 if(b.life<=0) bullets.splice(i,1);
             });
 
-            // 特效与飘字
-            effects.forEach((e,i) => { e.life--; if(e.life<=0) effects.splice(i,1); });
-            texts.forEach((t,i) => { t.y-=0.5; t.life--; if(t.life<=0) texts.splice(i,1); });
+            // 特效
+            effects.forEach((e,i) => {
+                if(e.type==='area') {
+                    e.timer--; if(e.timer<=0 && !e.done) { e.done=true; dealArea(e.x,e.y,e.r,e.dmg,e.team); effects.push({type:'explode', x:e.x, y:e.y, r:e.r, c:e.c, life:20}); }
+                } 
+                e.life--; 
+                if(e.life<=0 || (e.done && e.type==='area')) if(e.type!=='area'||e.done) effects.splice(i,1);
+            });
 
-            // 胜负
+            // 飘字
+            texts.forEach((t,i) => {t.y-=0.5; t.life--; if(t.life<=0) texts.splice(i,1);});
+
+            // 刷新UI血量
+            document.getElementById('hp-blue').innerText = Math.max(0, Math.floor(blueTower.hp));
+            document.getElementById('hp-red').innerText = Math.max(0, Math.floor(redTower.hp));
+
             if(blueTower.hp<=0 || redTower.hp<=0) {
                 gameState = 'END';
                 document.getElementById('end-screen').classList.remove('hidden');
-                document.getElementById('end-msg').innerText = redTower.hp<=0 ? "胜利!" : "失败!";
-                document.getElementById('end-msg').style.color = redTower.hp<=0 ? "#28a745" : "#dc3545";
+                document.getElementById('end-msg').innerText = redTower.hp<=0?"胜利!":"失败!";
+                document.getElementById('end-msg').style.color = redTower.hp<=0?"#28a745":"#dc3545";
             }
-            
-            document.getElementById('hp-blue').innerText = Math.floor(blueTower.hp);
-            document.getElementById('hp-red').innerText = Math.floor(redTower.hp);
         }
 
         function draw() {
             ctx.fillStyle = '#161616'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            
-            // 河道线
-            ctx.strokeStyle = '#333'; ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
+            // 河道
+            ctx.strokeStyle='#333'; ctx.beginPath(); ctx.moveTo(0,canvas.height/2); ctx.lineTo(canvas.width,canvas.height/2); ctx.stroke();
 
             // 塔
             [blueTower, redTower].forEach(t => {
-                if(t.dead) return;
-                ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(t.x,t.y,25,0,Math.PI*2); ctx.fill();
-                ctx.fillStyle=t.c; ctx.beginPath(); ctx.arc(t.x,t.y,15,0,Math.PI*2); ctx.fill();
-                // 塔范围
-                ctx.strokeStyle=t.team==='blue'?'rgba(0,200,255,0.1)':'rgba(255,0,0,0.1)'; ctx.beginPath(); ctx.arc(t.x,t.y,200,0,Math.PI*2); ctx.stroke();
-                t.draw(ctx);
+                if(!t.dead) {
+                    ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(t.x,t.y,30,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle=t.c; ctx.beginPath(); ctx.arc(t.x,t.y,20,0,Math.PI*2); ctx.fill();
+                    t.draw(ctx);
+                }
             });
 
-            units.forEach(u => { if(!u.dead) {ctx.fillStyle=u.c; ctx.beginPath(); ctx.arc(u.x,u.y,u.r,0,Math.PI*2); ctx.fill(); u.draw(ctx);} });
+            units.forEach(u => {if(!u.dead){ctx.fillStyle=u.c; ctx.beginPath(); ctx.arc(u.x,u.y,u.r,0,Math.PI*2); ctx.fill(); u.draw(ctx);}});
             if(!player.dead) player.draw(ctx);
             if(!enemy.dead) enemy.draw(ctx);
 
             bullets.forEach(b => { ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); });
-            effects.forEach(e => { ctx.fillStyle=e.c; ctx.globalAlpha=e.life/20; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; });
-            texts.forEach(t => { ctx.fillStyle='white'; ctx.font='12px Arial'; ctx.fillText(t.val, t.x, t.y); });
+            
+            // 特效绘制
+            effects.forEach(e => {
+                if(e.type==='explode') { ctx.globalAlpha=e.life/20; ctx.fillStyle=e.c; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+                if(e.type==='area' && !e.done) { ctx.strokeStyle=e.c; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.stroke(); ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fill(); }
+                if(e.type==='laser') { 
+                    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a); 
+                    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillRect(0,-10,600,20); 
+                    ctx.restore(); 
+                }
+                if(e.type==='slash') {
+                    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
+                    ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,50,-0.5,0.5); ctx.stroke();
+                    ctx.restore();
+                }
+            });
+
+            texts.forEach(t => { ctx.fillStyle='white'; ctx.font='12px sans-serif'; ctx.fillText(t.val, t.x, t.y); });
         }
 
         function loop() {
-            if(gameState === 'PLAYING') {
-                update();
-                draw();
-                requestAnimationFrame(loop);
-            }
+            if(gameState==='PLAYING') { update(); draw(); requestAnimationFrame(loop); }
         }
 
-        // --- 辅助函数 ---
-        function getTargets(team) {
-            let res = [];
-            if(team==='blue') { if(!redTower.dead)res.push(redTower); if(!enemy.dead)res.push(enemy); units.forEach(u=>{if(u.team==='red')res.push(u)}); }
+        // --- 辅助逻辑 ---
+        function getTargets(myTeam) {
+            let res=[];
+            if(myTeam==='blue') { if(!redTower.dead)res.push(redTower); if(!enemy.dead)res.push(enemy); units.forEach(u=>{if(u.team==='red')res.push(u)}); }
             else { if(!blueTower.dead)res.push(blueTower); if(!player.dead)res.push(player); units.forEach(u=>{if(u.team==='blue')res.push(u)}); }
             return res;
         }
-        function findNearest(me) {
-            let min=9999, res=null;
+        function findNearest(me, range=9999) {
+            let min=range, res=null;
             getTargets(me.team).forEach(t => { let d=Math.hypot(t.x-me.x, t.y-me.y); if(d<min){min=d; res=t;} });
             return res;
         }
         function checkHit(b) {
-            let list = getTargets(b.team);
-            for(let t of list) if(Math.hypot(t.x-b.x, t.y-b.y) < t.r+b.r) return t;
+            for(let t of getTargets(b.team)) if(Math.hypot(t.x-b.x, t.y-b.y) < t.r+b.r) return t;
             return null;
         }
+        function dealArea(x,y,r,dmg,team) {
+            getTargets(team).forEach(t => { if(Math.hypot(t.x-x, t.y-y) < r+t.r) t.hit(dmg); });
+        }
 
-        // --- 触摸控制 (关键修复) ---
-        const joyBase = document.getElementById('joystick-base');
-        const joyStick = document.getElementById('joystick-stick');
-        const joyContainer = document.getElementById('joystick-container');
-        let joyStart = {x:0, y:0};
+        // --- 触摸控制 ---
+        const jz = document.getElementById('joystick-container');
+        const jb = document.getElementById('joystick-base');
+        const js = document.getElementById('joystick-stick');
+        let jStart = {x:0, y:0};
 
-        // 摇杆事件监听 (绑定在 container 上范围更大)
-        joyContainer.addEventListener('touchstart', e => {
+        jz.addEventListener('touchstart', e => {
             e.preventDefault();
-            let t = e.changedTouches[0];
-            // 获取 base 中心
-            let rect = joyBase.getBoundingClientRect();
-            let cx = rect.left + rect.width/2;
-            let cy = rect.top + rect.height/2;
-            
-            joyStart = {x:cx, y:cy};
+            let rect = jb.getBoundingClientRect();
+            jStart = {x:rect.left+rect.width/2, y:rect.top+rect.height/2};
             joystick.active = true;
-            moveStick(t.clientX, t.clientY);
-        }, {passive: false});
+            moveJoy(e.changedTouches[0]);
+        }, {passive:false});
+        jz.addEventListener('touchmove', e => {e.preventDefault(); if(joystick.active) moveJoy(e.changedTouches[0]);}, {passive:false});
+        const endJoy = e => {e.preventDefault(); joystick.active=false; js.style.transform=`translate(-50%,-50%)`;};
+        jz.addEventListener('touchend', endJoy); jz.addEventListener('touchcancel', endJoy);
 
-        joyContainer.addEventListener('touchmove', e => {
-            e.preventDefault();
-            if(joystick.active) {
-                let t = e.changedTouches[0];
-                moveStick(t.clientX, t.clientY);
-            }
-        }, {passive: false});
-
-        function endJoy(e) {
-            e.preventDefault();
-            joystick.active = false;
-            joystick.dx = 0; joystick.dy = 0;
-            joyStick.style.transform = `translate(-50%, -50%)`;
-        }
-        joyContainer.addEventListener('touchend', endJoy);
-        joyContainer.addEventListener('touchcancel', endJoy);
-
-        function moveStick(mx, my) {
-            let dx = mx - joyStart.x;
-            let dy = my - joyStart.y;
-            let dist = Math.min(40, Math.hypot(dx, dy)); // 半径限制
-            let ang = Math.atan2(dy, dx);
-            
-            joystick.dx = Math.cos(ang);
-            joystick.dy = Math.sin(ang);
-            joystick.angle = ang;
-            
-            joyStick.style.transform = `translate(calc(-50% + ${joystick.dx*dist}px), calc(-50% + ${joystick.dy*dist}px))`;
+        function moveJoy(t) {
+            let dx=t.clientX-jStart.x, dy=t.clientY-jStart.y;
+            let d=Math.min(35, Math.hypot(dx,dy));
+            let a=Math.atan2(dy,dx);
+            joystick.dx=Math.cos(a); joystick.dy=Math.sin(a); joystick.angle=a;
+            js.style.transform=`translate(calc(-50% + ${joystick.dx*d}px), calc(-50% + ${joystick.dy*d}px))`;
         }
 
-        // 技能事件
-        window.handleSkill = function(e, key) {
+        window.handleSkill = function(e, k) {
             e.preventDefault();
             if(player.dead) return;
-            if(key==='AA') { // 普攻
-                let t = findNearest(player);
-                if(t && Math.hypot(t.x-player.x, t.y-player.y)<player.cfg.range) {
-                    bullets.push({x:player.x, y:player.y, vx:Math.cos(player.face)*8, vy:Math.sin(player.face)*8, dmg:40, team:'blue', life:30, r:5, c:'#fff'});
-                } else {
-                    // 空放
-                     bullets.push({x:player.x, y:player.y, vx:Math.cos(player.face)*8, vy:Math.sin(player.face)*8, dmg:40, team:'blue', life:20, r:5, c:'#fff'});
-                }
+
+            // AA 普攻逻辑 (非指向性)
+            if(k==='AA') {
+                // 寻找最近敌人确定方向，如果没有，就朝向自己面朝方向
+                let t = findNearest(player, 400);
+                let angle = player.face;
+                if(t) angle = Math.atan2(t.y-player.y, t.x-player.x);
+                
+                // 发射直线子弹
+                bullets.push({
+                    x:player.x, y:player.y, 
+                    vx:Math.cos(angle)*CONFIG.speed.bullet, vy:Math.sin(angle)*CONFIG.speed.bullet, 
+                    dmg:40, team:'blue', life:50, r:5, c:'#fff'
+                });
                 return;
             }
-            // 技能释放 (简化：自动瞄准最近敌人，或者朝向)
-            if(player.cds[key]>0) return;
             
-            let t = findNearest(player);
-            let tx = t ? t.x : player.x + Math.cos(player.face)*200;
-            let ty = t ? t.y : player.y + Math.sin(player.face)*200;
-            
-            // 视觉效果
-            if(key==='Q') bullets.push({x:player.x, y:player.y, vx:Math.cos(Math.atan2(ty-player.y, tx-player.x))*10, vy:Math.sin(Math.atan2(ty-player.y, tx-player.x))*10, dmg:100, team:'blue', life:40, r:10, c:'cyan'});
-            if(key==='W') { player.x+=Math.cos(player.face)*100; player.y+=Math.sin(player.face)*100; }
-            if(key==='E') effects.push({x:tx, y:ty, r:50, c:'orange', life:20});
-            if(key==='R') bullets.push({x:player.x, y:player.y, vx:Math.cos(player.face)*20, vy:Math.sin(player.face)*20, dmg:300, team:'blue', life:50, r:20, c:'purple'});
+            // 技能
+            if(player.cds[k]>0) return;
+            let t = findNearest(player, 400);
+            let tx = t ? t.x : player.x+Math.cos(player.face)*150;
+            let ty = t ? t.y : player.y+Math.sin(player.face)*150;
+            let a = Math.atan2(ty-player.y, tx-player.x);
 
-            player.cds[key] = player.cfg.cd[key];
+            if(k==='Q') {
+                if(player.type==='warrior') {
+                    effects.push({type:'slash', x:player.x, y:player.y, a:a, life:15});
+                    dealArea(player.x+Math.cos(a)*60, player.y+Math.sin(a)*60, 70, 100, 'blue');
+                } else {
+                    bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*6, vy:Math.sin(a)*6, dmg:120, team:'blue', life:50, r:12, c:'cyan'});
+                }
+            }
+            if(k==='W') { player.x+=Math.cos(a)*80; player.y+=Math.sin(a)*80; effects.push({type:'explode',x:player.x,y:player.y,r:20,c:'white',life:10}); }
+            if(k==='E') { effects.push({type:'area', x:tx, y:ty, r:60, c:'orange', dmg:120, team:'blue', timer:40, done:false}); }
+            if(k==='R') { 
+                if(player.type==='mage') effects.push({type:'laser', x:player.x, y:player.y, a:a, team:'blue', dmg:400, life:20});
+                else if(player.type==='shooter') bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*15, vy:Math.sin(a)*15, dmg:400, team:'blue', life:50, r:15, c:'magenta'});
+                else effects.push({type:'area', x:player.x, y:player.y, r:200, c:'#8B4513', dmg:350, team:'blue', timer:40, done:false});
+            }
+            
+            player.cds[k] = player.cfg.cd[k];
         };
 
-        window.startGame = function(type) {
-            initGame(type);
-        }
-
+        window.startGame = function(t) { initGame(t); }
     </script>
 </body>
 </html>
