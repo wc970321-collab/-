@@ -3,115 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Web MOBA: 特效升级版</title>
+    <title>Web MOBA: 英雄技能重制版</title>
     <style>
-        * {
-            box-sizing: border-box;
-            touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000;
-            font-family: sans-serif;
-            overflow: hidden;
-            display: flex; flex-direction: column;
-        }
-
-        /* 游戏区 65% */
-        #game-container {
-            width: 100%; height: 65%;
-            position: relative; background: #101010; border-bottom: 2px solid #333;
-        }
+        /* --- 基础样式保持不变 --- */
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+        
+        #game-container { width: 100%; height: 65%; position: relative; background: #0d0d0d; border-bottom: 2px solid #333; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
-
+        
         /* HUD */
-        #hud-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #top-bar { display: flex; justify-content: space-between; padding: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black; font-size: 12px;}
+        #hud-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        #top-bar { display: flex; justify-content: space-between; padding: 10px 20px; color: white; font-weight: bold; text-shadow: 0 2px 4px black; font-size: 14px;}
         .team-blue { color: #00eaff; } .team-red { color: #ff4757; }
 
-        /* 控制区 35% */
-        #controls-area {
-            width: 100%; height: 35%; background-color: #1a1a1a;
-            position: relative; display: flex;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
-        }
-        /* 摇杆 */
-        #joystick-container {
-            width: 40%; height: 100%; position: relative;
-            display: flex; align-items: center; justify-content: center;
-        }
-        #joystick-base {
-            width: 110px; height: 110px; background: rgba(0,0,0,0.4);
-            border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; position: relative;
-        }
-        #joystick-stick {
-            width: 40px; height: 40px; background: linear-gradient(135deg, #00eaff, #0099ff);
-            border-radius: 50%; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); box-shadow: 0 0 15px rgba(0,234,255,0.5);
-        }
+        /* 控制区 */
+        #controls-area { width: 100%; height: 35%; background-color: #1a1a1a; position: relative; display: flex; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); }
+        #joystick-container { width: 40%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; }
+        #joystick-base { width: 120px; height: 120px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; position: relative; }
+        #joystick-stick { width: 50px; height: 50px; background: linear-gradient(135deg, #ddd, #888); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
-        /* 技能区 */
+        /* 技能按钮 */
         #skills-container { width: 60%; height: 100%; position: relative; }
         .skill-btn {
-            position: absolute; width: 55px; height: 55px; background: #2a2a2a;
-            border: 2px solid #444; border-radius: 50%; color: white;
+            position: absolute; width: 60px; height: 60px; background: #252525;
+            border: 2px solid #444; border-radius: 50%; color: #eee;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-            font-size: 14px;
+            font-weight: bold; box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+            font-size: 16px; transition: transform 0.1s;
         }
-        .skill-btn:active { background: #444; transform: scale(0.95); border-color: #888;}
+        .skill-btn:active { background: #444; transform: scale(0.9); border-color: #aaa;}
         
-        /* 布局 */
-        .p-q { bottom: 20px; right: 130px; border-color: #00eaff; box-shadow: 0 0 10px rgba(0,234,255,0.2);}
-        .p-w { bottom: 90px; right: 110px; border-color: #7bed9f; box-shadow: 0 0 10px rgba(123,237,159,0.2);}
-        .p-e { bottom: 130px; right: 30px; border-color: #ffa502; box-shadow: 0 0 10px rgba(255,165,2,0.2);}
-        .p-r { bottom: 160px; right: 120px; width: 50px!important; height: 50px!important; border-color: #ff4757; background: #300; box-shadow: 0 0 15px rgba(255,71,87,0.4);} 
-        .p-aa{ bottom: 20px; right: 20px; width: 80px!important; height: 80px!important; background: #333; font-size: 24px; border-color: #ccc;} 
+        /* 针对不同技能的颜色微调 */
+        .p-q { bottom: 20px; right: 140px; border-color: #00eaff; color: #00eaff; }
+        .p-w { bottom: 90px; right: 120px; border-color: #7bed9f; color: #7bed9f; }
+        .p-e { bottom: 130px; right: 40px; border-color: #ffa502; color: #ffa502; }
+        .p-r { bottom: 170px; right: 130px; width: 55px!important; height: 55px!important; border-color: #ff4757; background: #300; color: #ff4757; box-shadow: 0 0 15px rgba(255,71,87,0.4);} 
+        .p-aa{ bottom: 20px; right: 20px; width: 85px!important; height: 85px!important; background: #333; font-size: 24px; border-color: #fff; color: white;} 
 
-        .cd-overlay {
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            border-radius: 50%; background: rgba(0,0,0,0.8);
-            display: none; align-items: center; justify-content: center; color: #fff; font-size: 18px;
-        }
+        .cd-overlay { position: absolute; top:0; left:0; width:100%; height:100%; border-radius: 50%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; color: #fff; font-size: 20px; }
 
         /* 弹窗 */
-        .overlay-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 999;
-        }
+        .overlay-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
         .hidden { display: none !important; }
-        .h-card { width: 90px; padding: 20px; background: #222; border: 1px solid #444; border-radius: 12px; text-align: center; color: white; margin: 10px; transition: 0.2s;}
-        .h-card:active { transform: scale(0.95); border-color: #00eaff; }
-        h1 { color: #ffd700; margin-bottom: 30px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; }
-        .btn-main { padding: 12px 40px; font-size: 18px; background: linear-gradient(to right, #28a745, #218838); color: white; border: none; border-radius: 25px; margin-top: 20px; box-shadow: 0 5px 15px rgba(40,167,69,0.4);}
+        .hero-box { display: flex; gap: 15px; margin-top: 20px; }
+        .h-card { width: 100px; padding: 20px; background: #222; border: 1px solid #444; border-radius: 12px; text-align: center; color: white; cursor: pointer; transition: 0.2s; }
+        .h-card:active { transform: scale(0.95); border-color: white; background: #333; }
+        
+        h1 { color: #ffd700; font-size: 24px; letter-spacing: 2px; margin-bottom: 10px; }
+        p { color: #888; font-size: 12px; margin-bottom: 20px; }
+        .desc { font-size: 10px; color: #aaa; margin-top: 5px; line-height: 1.4; }
+        .btn-main { padding: 12px 40px; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 25px; margin-top: 30px; }
     </style>
 </head>
 <body>
 
     <div id="selection-screen" class="overlay-screen">
-        <h1>选择英雄</h1>
-        <div style="display:flex;">
+        <h1>英雄选择</h1>
+        <p>选择你的战斗风格</p>
+        <div class="hero-box">
             <div class="h-card" onclick="startGame('mage')">
-                <div style="font-size:30px; margin-bottom:10px; text-shadow:0 0 10px blue;">🔵</div>
-                <div>法师</div>
+                <div style="font-size:35px;">🧙‍♂️</div>
+                <div style="color:#00eaff; font-weight:bold;">秘术法师</div>
+                <div class="desc">远程 / 爆发<br>冰霜与激光</div>
             </div>
             <div class="h-card" onclick="startGame('shooter')">
-                <div style="font-size:30px; margin-bottom:10px; text-shadow:0 0 10px green;">🏹</div>
-                <div>射手</div>
+                <div style="font-size:35px;">🏹</div>
+                <div style="color:#7bed9f; font-weight:bold;">丛林射手</div>
+                <div class="desc">远程 / 攻速<br>多重射击</div>
             </div>
             <div class="h-card" onclick="startGame('warrior')">
-                <div style="font-size:30px; margin-bottom:10px; text-shadow:0 0 10px red;">🛡️</div>
-                <div>战士</div>
+                <div style="font-size:35px;">⚔️</div>
+                <div style="color:#ff4757; font-weight:bold;">狂暴战士</div>
+                <div class="desc">近战 / 坦克<br>火焰斩击</div>
             </div>
         </div>
     </div>
 
     <div id="end-screen" class="overlay-screen hidden">
-        <h1 id="end-msg">结束</h1>
+        <h1 id="end-msg">游戏结束</h1>
         <button class="btn-main" onclick="location.reload()">返回大厅</button>
     </div>
 
@@ -119,10 +89,10 @@
         <canvas id="gameCanvas"></canvas>
         <div id="hud-layer">
             <div id="top-bar">
-                <div onclick="location.reload()" style="font-size:20px;">🏠</div>
-                <div class="team-red">敌塔: <span id="hp-red">5000</span></div>
+                <div onclick="location.reload()" style="font-size:24px;">🏠</div>
+                <div class="team-red">敌方基地: <span id="hp-red">5000</span></div>
             </div>
-            <div style="position:absolute; bottom:10px; left:10px;" class="team-blue">我塔: <span id="hp-blue">5000</span></div>
+            <div style="position:absolute; bottom:10px; left:20px; font-weight:bold;" class="team-blue">我方基地: <span id="hp-blue">5000</span></div>
         </div>
     </div>
 
@@ -142,24 +112,28 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const gameContainer = document.getElementById('game-container');
+        const container = document.getElementById('game-container');
         
-        function resize() {
-            canvas.width = gameContainer.clientWidth;
-            canvas.height = gameContainer.clientHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        function resize() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; }
+        window.addEventListener('resize', resize); resize();
 
-        const CONFIG = {
-            speed: { hero: 2.2, minion: 0.8, bullet: 5.0 },
-            spawnRate: 600
-        };
+        // --- 游戏配置 ---
+        const CONFIG = { speed: { hero: 2.2, minion: 0.8, bullet: 6.0 }, spawnRate: 600 };
 
+        // 英雄技能参数差异化
         const HEROES = {
-            mage: { hp:900, speed: 2.0, cd:{Q:40,W:300,E:180,R:600} },
-            shooter: { hp:700, speed: 2.2, cd:{Q:20,W:180,E:300,R:900} },
-            warrior: { hp:1600, speed: 2.0, cd:{Q:30,W:240,E:360,R:700} }
+            mage: { 
+                hp: 900, color: '#00eaff', type:'mage', speed: 2.0,
+                cd: {Q:50, W:300, E:240, R:800}
+            },
+            shooter: { 
+                hp: 750, color: '#7bed9f', type:'shooter', speed: 2.3,
+                cd: {Q:40, W:180, E:360, R:900}
+            },
+            warrior: { 
+                hp: 1800, color: '#ff4757', type:'warrior', speed: 2.1,
+                cd: {Q:30, W:240, E:400, R:700}
+            }
         };
 
         let gameState = 'MENU';
@@ -169,85 +143,91 @@
 
         // --- 粒子系统 ---
         class Particle {
-            constructor(x, y, color, speed, size) {
-                this.x = x; this.y = y; this.color = color;
-                let angle = Math.random() * Math.PI * 2;
-                this.vx = Math.cos(angle) * speed * Math.random();
-                this.vy = Math.sin(angle) * speed * Math.random();
-                this.life = 1.0;
-                this.decay = 0.03 + Math.random() * 0.03;
-                this.size = size;
+            constructor(x, y, c, spd, life) {
+                this.x = x; this.y = y; this.c = c; this.life = 1.0; this.decay = 1/life;
+                let a = Math.random()*Math.PI*2;
+                this.vx = Math.cos(a)*spd*Math.random(); this.vy = Math.sin(a)*spd*Math.random();
+                this.size = Math.random()*3+1;
             }
-            update() {
-                this.x += this.vx; this.y += this.vy;
-                this.life -= this.decay;
-            }
+            update() { this.x+=this.vx; this.y+=this.vy; this.life-=this.decay; }
             draw(ctx) {
-                ctx.globalAlpha = this.life;
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
-                ctx.globalAlpha = 1.0;
+                ctx.globalAlpha = this.life; ctx.fillStyle=this.c; 
+                ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1;
             }
         }
+        function spawnParticles(x,y,c,n,spd=2) { for(let i=0;i<n;i++) particles.push(new Particle(x,y,c,spd,30)); }
 
-        function spawnParticles(x, y, color, count, speed=2, size=2) {
-            for(let i=0; i<count; i++) particles.push(new Particle(x, y, color, speed, size));
-        }
-
-        // --- 实体类 ---
+        // --- 实体系统 ---
         class Entity {
             constructor(x,y,r,c,team,hp,maxHp) {
                 this.x=x; this.y=y; this.r=r; this.c=c; this.team=team;
                 this.hp=hp; this.maxHp=maxHp; this.dead=false;
+                this.buffs = []; // e.g., {type:'speed', timer: 20}
             }
             draw(ctx) {
                 // 阴影
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.beginPath(); ctx.ellipse(this.x, this.y+this.r*0.8, this.r, this.r*0.4, 0, 0, Math.PI*2); ctx.fill();
-                
+                ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(this.x, this.y+this.r*0.8, this.r, this.r*0.4, 0, 0, Math.PI*2); ctx.fill();
                 // 血条
                 let pct = Math.max(0, this.hp/this.maxHp);
-                ctx.fillStyle='#222'; ctx.fillRect(this.x-15, this.y-this.r-12, 30, 5);
-                ctx.fillStyle=this.team==='blue'?'#00eaff':'#ff4757'; ctx.fillRect(this.x-15, this.y-this.r-12, 30*pct, 5);
+                ctx.fillStyle='#222'; ctx.fillRect(this.x-15, this.y-this.r-10, 30, 4);
+                ctx.fillStyle=this.team==='blue'?'#00eaff':'#ff4757'; ctx.fillRect(this.x-15, this.y-this.r-10, 30*pct, 4);
             }
             hit(dmg) {
                 if(this.dead) return;
                 this.hp-=dmg;
-                texts.push({x:this.x, y:this.y-25, val:Math.floor(dmg), life:40});
+                texts.push({x:this.x, y:this.y-20, v:Math.floor(dmg), l:30, c:'#fff'});
                 if(this.hp<=0) {
                     this.dead=true; this.hp=0;
-                    spawnParticles(this.x, this.y, this.c, 15, 3, 3);
-                    effects.push({type:'shockwave', x:this.x, y:this.y, r:10, maxR:this.r*2, c:this.c, life:15});
+                    spawnParticles(this.x,this.y,this.c,15,3);
+                    effects.push({type:'boom', x:this.x, y:this.y, r:this.r*2, c:this.c, life:15});
                 }
             }
         }
 
         class Hero extends Entity {
             constructor(x,y,team,type) {
-                super(x,y, 18, team==='blue'?'#00eaff':'#ff4757', team, HEROES[type].hp, HEROES[type].hp);
-                this.cfg = HEROES[type];
-                this.type = type;
-                this.cds = {Q:0,W:0,E:0,R:0,AA:0};
-                this.face = team==='blue'? -Math.PI/2 : Math.PI/2; 
+                super(x,y,20,HEROES[type].color,team,HEROES[type].hp,HEROES[type].hp);
+                this.cfg=HEROES[type]; this.type=type;
+                this.cds={Q:0,W:0,E:0,R:0,AA:0};
+                this.face=team==='blue'?-Math.PI/2:Math.PI/2;
+                this.spinAngle=0; // 战士E技能旋转角度
             }
-            update() { for(let k in this.cds) if(this.cds[k]>0) this.cds[k]--; }
+            update() {
+                for(let k in this.cds) if(this.cds[k]>0) this.cds[k]--;
+                // 战士旋风斩逻辑
+                if(this.buffs.find(b=>b.type==='spin')) this.spinAngle+=0.5;
+                // Buff计时
+                this.buffs = this.buffs.filter(b => --b.timer > 0);
+            }
             draw(ctx) {
                 ctx.save(); ctx.translate(this.x, this.y);
-                // 英雄光环
-                if(this.team==='blue'){
-                    ctx.shadowBlur = 15; ctx.shadowColor = "rgba(0, 234, 255, 0.5)";
-                }
                 
-                // 朝向
-                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(this.face)*35, Math.sin(this.face)*35); 
-                ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=2; ctx.stroke();
-                ctx.shadowBlur=0;
+                // 战士旋风特效
+                if(this.buffs.find(b=>b.type==='spin')) {
+                    ctx.save(); ctx.rotate(this.spinAngle);
+                    ctx.strokeStyle='rgba(255,100,0,0.5)'; ctx.lineWidth=4;
+                    ctx.beginPath(); ctx.arc(0,0,60,0,Math.PI*1.5); ctx.stroke();
+                    ctx.restore();
+                }
 
+                // 朝向箭头
+                ctx.rotate(this.face);
                 ctx.fillStyle=this.c;
-                if(this.type==='mage') { ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill(); }
-                else if(this.type==='warrior') { ctx.fillRect(-15,-15,30,30); }
-                else { ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(14,12);ctx.lineTo(-14,12);ctx.fill(); }
-                ctx.restore();
+                
+                if(this.type==='mage') {
+                    // 法师：圆形+法阵感
+                    ctx.shadowBlur=10; ctx.shadowColor=this.c;
+                    ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill();
+                    ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+                } else if(this.type==='shooter') {
+                    // 射手：三角形
+                    ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,10); ctx.lineTo(-10,-10); ctx.fill();
+                } else {
+                    // 战士：方块/盾牌
+                    ctx.fillRect(-15,-15,30,30);
+                }
+                ctx.shadowBlur=0; ctx.restore();
                 super.draw(ctx);
             }
         }
@@ -255,153 +235,151 @@
         function initGame(heroType) {
             document.getElementById('selection-screen').classList.add('hidden');
             resize();
-            let cx = canvas.width/2, h = canvas.height;
-
-            blueTower = {x:cx, y:h-60, r:30, c:'#0099ff', team:'blue', hp:5000, maxHp:5000, dead:false, spawnT:0, atkT:0};
-            redTower = {x:cx, y:60, r:30, c:'#ff3333', team:'red', hp:5000, maxHp:5000, dead:false, spawnT:0, atkT:0};
-            [blueTower, redTower].forEach(t => { t.draw=Entity.prototype.draw.bind(t); t.hit=Entity.prototype.hit.bind(t); });
-
-            player = new Hero(cx, h-130, 'blue', heroType);
-            enemy = new Hero(cx, 130, 'red', 'warrior');
-
+            let cx=canvas.width/2, h=canvas.height;
+            
+            blueTower = new Entity(cx, h-60, 30, '#0099ff', 'blue', 5000, 5000);
+            redTower = new Entity(cx, 60, 30, '#ff3333', 'red', 5000, 5000);
+            
+            player = new Hero(cx, h-150, 'blue', heroType);
+            enemy = new Hero(cx, 150, 'red', 'warrior'); // 敌人默认战士
+            
             units=[]; bullets=[]; effects=[]; texts=[]; particles=[];
-            gameState = 'PLAYING';
-            loop();
+            gameState = 'PLAYING'; loop();
         }
 
+        // --- 核心逻辑更新 ---
         function update() {
-            // 玩家移动
+            if(player.dead && Math.random()<0.01) {player.dead=false;player.hp=player.maxHp;player.x=blueTower.x;player.y=blueTower.y;}
+            if(enemy.dead && Math.random()<0.01) {enemy.dead=false;enemy.hp=enemy.maxHp;enemy.x=redTower.x;enemy.y=redTower.y;}
+
+            // 玩家控制
             if(!player.dead) {
                 player.update();
+                let speed = player.cfg.speed;
+                if(player.buffs.find(b=>b.type==='speed')) speed *= 1.5; // 加速Buff
+
                 if(joystick.active) {
-                    player.x += joystick.dx * player.cfg.speed;
-                    player.y += joystick.dy * player.cfg.speed;
+                    player.x += joystick.dx * speed; player.y += joystick.dy * speed;
                     player.face = joystick.angle;
-                    player.x = Math.max(15, Math.min(canvas.width-15, player.x));
-                    player.y = Math.max(15, Math.min(canvas.height-15, player.y));
+                    player.x = Math.max(20,Math.min(canvas.width-20,player.x));
+                    player.y = Math.max(20,Math.min(canvas.height-20,player.y));
                 }
                 ['Q','W','E','R'].forEach(k=>{
-                    let div = document.getElementById('cd-'+k.toLowerCase());
-                    if(player.cds[k]>0) { div.style.display='flex'; div.innerText = Math.ceil(player.cds[k]/60); } else div.style.display='none';
+                    let d=document.getElementById('cd-'+k.toLowerCase());
+                    if(player.cds[k]>0){d.style.display='flex';d.innerText=Math.ceil(player.cds[k]/60);}else d.style.display='none';
                 });
-            } else if(Math.random()<0.01) {player.dead=false; player.hp=player.maxHp; player.x=blueTower.x; player.y=blueTower.y;}
+            }
 
-            // 敌人AI
+            // 战士旋风斩伤害
+            [player, enemy].forEach(h => {
+                if(!h.dead && h.buffs.find(b=>b.type==='spin')) {
+                    if(Math.random()<0.3) dealArea(h.x, h.y, 60, 5, h.team); // 持续伤害
+                    if(Math.random()<0.2) spawnParticles(h.x+(Math.random()-0.5)*40, h.y+(Math.random()-0.5)*40, 'orange', 1);
+                }
+            });
+
+            // 敌人简单AI
             if(!enemy.dead) {
                 enemy.update();
-                let d = Math.hypot(player.x-enemy.x, player.y-enemy.y);
-                let tx = blueTower.x, ty = blueTower.y;
-                if(enemy.hp<enemy.maxHp*0.3) { tx=redTower.x; ty=redTower.y; }
-                else if(d<250) { tx=player.x; ty=player.y; }
+                let t = findNearest(enemy, 400);
+                let tx=redTower.x, ty=redTower.y;
+                if(t) { tx=t.x; ty=t.y; }
                 
-                let ang = Math.atan2(ty-enemy.y, tx-enemy.x);
-                if(Math.hypot(tx-enemy.x, ty-enemy.y)>70) {
-                    enemy.x += Math.cos(ang)*enemy.cfg.speed; enemy.y += Math.sin(ang)*enemy.cfg.speed;
-                    enemy.face = ang;
+                if(Math.hypot(tx-enemy.x, ty-enemy.y)>80) {
+                    let a = Math.atan2(ty-enemy.y, tx-enemy.x);
+                    enemy.x+=Math.cos(a)*enemy.cfg.speed; enemy.y+=Math.sin(a)*enemy.cfg.speed;
+                    enemy.face=a;
                 }
-                if(enemy.cds.AA<=0 && d < 120) {
-                    bullets.push({x:enemy.x, y:enemy.y, vx:Math.cos(ang)*5, vy:Math.sin(ang)*5, dmg:30, team:'red', life:25, r:4, c:'red', style:'basic'});
-                    enemy.cds.AA = 90;
+                if(t && enemy.cds.AA<=0 && Math.hypot(t.x-enemy.x,t.y-enemy.y)<100) {
+                    // 敌人战士平A
+                    effects.push({type:'slash', x:enemy.x, y:enemy.y, a:enemy.face, life:10, c:'red'});
+                    t.hit(30);
+                    enemy.cds.AA = 80;
                 }
-            } else if(Math.random()<0.01) {enemy.dead=false; enemy.hp=enemy.maxHp; enemy.x=redTower.x; enemy.y=redTower.y;}
+            }
 
-            // 塔
+            // 塔生成兵
             [blueTower, redTower].forEach(t => {
                 if(t.dead) return;
-                t.spawnT++;
+                t.spawnT = (t.spawnT||0)+1;
                 if(t.spawnT > CONFIG.spawnRate) {
-                    for(let i=0; i<2; i++) units.push(new Entity(t.x+(i-0.5)*40, t.y + (t.team==='blue'?-50:50), 10, t.team==='blue'?'#7efff5':'#ffcccc', t.team, 120, 120));
-                    t.spawnT = 0;
+                    for(let i=0; i<2; i++) units.push(new Entity(t.x+(i-0.5)*40, t.y+(t.team==='blue'?-50:50), 10, t.team==='blue'?'#7efff5':'#ffcccc', t.team, 120, 120));
+                    t.spawnT=0;
                 }
-                t.atkT--;
-                if(t.atkT <= 0) {
+                // 塔攻击
+                t.atkT = (t.atkT||0)-1;
+                if(t.atkT<=0) {
                     let target = findNearest(t, 250);
                     if(target) {
-                        let a = Math.atan2(target.y-t.y, target.x-t.x);
-                        bullets.push({x:t.x, y:t.y, vx:Math.cos(a)*6, vy:Math.sin(a)*6, dmg:80, team:t.team, life:50, r:6, c:t.c, style:'tower'});
+                        bullets.push({x:t.x, y:t.y, vx:0, vy:0, target:target, speed:6, dmg:80, team:t.team, life:100, style:'tower', c:t.c});
                         t.atkT = 60;
                     }
                 }
             });
 
-            // 小兵
+            // 小兵逻辑
             units.forEach((u,i) => {
-                if(u.dead) { units.splice(i,1); return; }
-                let t = findNearest(u, 150);
-                let tx = u.team==='blue' ? redTower.x : blueTower.x;
-                let ty = u.team==='blue' ? redTower.y : blueTower.y;
-                
+                if(u.dead){units.splice(i,1); return;}
+                let t = findNearest(u, 200);
+                let tx = u.team==='blue'?redTower.x:blueTower.x, ty = u.team==='blue'?redTower.y:blueTower.y;
                 if(t) {
-                    if(Math.hypot(t.x-u.x, t.y-u.y) < 80) {
-                        if(Math.random()<0.03) bullets.push({x:u.x, y:u.y, vx:(t.x-u.x)*0.04, vy:(t.y-u.y)*0.04, dmg:10, team:u.team, life:20, r:3, c:u.c, style:'basic'});
-                    } else { u.x += (t.x-u.x)*0.015; u.y += (t.y-u.y)*0.015; }
+                    if(Math.hypot(t.x-u.x, t.y-u.y)<100) {
+                         if(Math.random()<0.02) bullets.push({x:u.x, y:u.y, target:t, speed:4, dmg:10, team:u.team, life:40, style:'orb', c:u.c});
+                    } else { u.x+=(t.x-u.x)*0.015; u.y+=(t.y-u.y)*0.015; }
                 } else {
-                    let ang = Math.atan2(ty-u.y, tx-u.x);
-                    u.x += Math.cos(ang) * CONFIG.speed.minion; u.y += Math.sin(ang) * CONFIG.speed.minion;
+                    let a = Math.atan2(ty-u.y, tx-u.x);
+                    u.x+=Math.cos(a)*CONFIG.speed.minion; u.y+=Math.sin(a)*CONFIG.speed.minion;
                 }
-                // 碰撞推挤
-                units.forEach(o => {
-                    if(u!==o && !o.dead && Math.hypot(u.x-o.x, u.y-o.y)<20) {
-                        let a = Math.atan2(u.y-o.y, u.x-o.x);
-                        u.x+=Math.cos(a)*0.5; u.y+=Math.sin(a)*0.5;
-                    }
-                });
+                // 碰撞
+                units.forEach(o=>{ if(u!==o && Math.hypot(u.x-o.x, u.y-o.y)<20){ let a=Math.atan2(u.y-o.y, u.x-o.x); u.x+=Math.cos(a)*0.5; u.y+=Math.sin(a)*0.5; } });
             });
 
-            // 子弹
+            // 子弹更新
             bullets.forEach((b,i) => {
-                b.x+=b.vx; b.y+=b.vy; b.life--;
-                // 尾迹生成
-                if(b.style === 'fireball' && Math.random()<0.5) particles.push(new Particle(b.x, b.y, 'orange', 0.5, 2));
-                if(b.style === 'snipe') particles.push(new Particle(b.x, b.y, '#f0f', 0, 1));
-
-                let t = checkHit(b);
-                if(t) { 
-                    t.hit(b.dmg); b.life=0; 
-                    spawnParticles(b.x, b.y, b.c, 5, 2, 2);
+                if(b.target) { // 追踪弹 (塔/小兵)
+                    let a = Math.atan2(b.target.y-b.y, b.target.x-b.x);
+                    b.x+=Math.cos(a)*b.speed; b.y+=Math.sin(a)*b.speed;
+                    if(Math.hypot(b.target.x-b.x, b.target.y-b.y)<10) { b.target.hit(b.dmg); b.life=0; }
+                } else { // 非指向性 (英雄)
+                    b.x+=b.vx; b.y+=b.vy;
+                    let hit = checkHit(b);
+                    if(hit) { hit.hit(b.dmg); b.life=0; }
                 }
-                if(b.life<=0) bullets.splice(i,1);
-            });
-
-            // 粒子 & 特效
-            particles.forEach((p,i) => { p.update(); if(p.life<=0) particles.splice(i,1); });
-            effects.forEach((e,i) => {
-                if(e.type==='area') {
-                    e.timer--; if(e.timer<=0 && !e.done) { 
-                        e.done=true; dealArea(e.x,e.y,e.r,e.dmg,e.team); 
-                        effects.push({type:'shockwave', x:e.x, y:e.y, r:10, maxR:e.r, c:e.c, life:20});
-                        spawnParticles(e.x, e.y, e.c, 20, 4, 3);
-                    }
-                } 
-                else if(e.type==='shockwave') { e.r += (e.maxR-e.r)*0.2; }
                 
-                e.life--; 
-                if(e.life<=0 || (e.done && e.type==='area')) if(e.type!=='area'||e.done) effects.splice(i,1);
+                b.life--;
+                if(b.life<=0) { bullets.splice(i,1); spawnParticles(b.x, b.y, b.c, 5); }
+                // 粒子拖尾
+                if(b.style!=='orb' && Math.random()<0.5) particles.push(new Particle(b.x, b.y, b.c, 0.5, 10));
             });
-            texts.forEach((t,i) => {t.y-=0.5; t.life--; if(t.life<=0) texts.splice(i,1);});
 
-            // UI
+            particles.forEach((p,i) => { p.update(); if(p.life<=0) particles.splice(i,1); });
+            texts.forEach((t,i) => { t.y-=0.5; t.l--; if(t.l<=0) texts.splice(i,1); });
+            
+            // 特效更新
+            effects.forEach((e,i) => {
+                e.life--;
+                if(e.type==='area') {
+                    if(e.life<=0 && !e.done) { // 爆炸时刻
+                        e.done=true; dealArea(e.x, e.y, e.r, e.dmg, e.team);
+                        effects.push({type:'boom', x:e.x, y:e.y, r:e.r, c:e.c, life:20});
+                        // 震屏模拟 (可选)
+                    }
+                }
+                if(e.life<=0 && (!e.type==='area' || e.done)) effects.splice(i,1);
+            });
+
             document.getElementById('hp-blue').innerText = Math.floor(blueTower.hp);
             document.getElementById('hp-red').innerText = Math.floor(redTower.hp);
             if(blueTower.hp<=0 || redTower.hp<=0) {
-                gameState='END'; document.getElementById('end-screen').classList.remove('hidden');
-                document.getElementById('end-msg').innerText = redTower.hp<=0?"胜利!":"失败!";
-                document.getElementById('end-msg').style.color = redTower.hp<=0?"#28a745":"#dc3545";
+                gameState='END';
+                document.getElementById('end-screen').classList.remove('hidden');
             }
         }
 
         function draw() {
-            ctx.fillStyle = '#121212'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle='#101010'; ctx.fillRect(0,0,canvas.width,canvas.height);
             
-            // 地板网格
-            ctx.strokeStyle='rgba(255,255,255,0.03)'; ctx.beginPath();
-            for(let i=0;i<canvas.width;i+=50){ctx.moveTo(i,0);ctx.lineTo(i,canvas.height);}
-            for(let i=0;i<canvas.height;i+=50){ctx.moveTo(0,i);ctx.lineTo(canvas.width,i);}
-            ctx.stroke();
-            // 河道
-            ctx.strokeStyle='#222'; ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(0,canvas.height/2); ctx.lineTo(canvas.width,canvas.height/2); ctx.stroke(); ctx.lineWidth=1;
-
-            // 塔
+            // 绘制塔
             [blueTower, redTower].forEach(t => {
                 if(t.dead) return;
                 ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(t.x,t.y,30,0,Math.PI*2); ctx.fill();
@@ -411,77 +389,68 @@
                 t.draw(ctx);
             });
 
-            units.forEach(u => {if(!u.dead){ctx.fillStyle=u.c; ctx.beginPath(); ctx.arc(u.x,u.y,u.r,0,Math.PI*2); ctx.fill(); u.draw(ctx);}});
-            
-            // 粒子在英雄下层
+            // 绘制单位
+            units.forEach(u => u.draw(ctx));
             particles.forEach(p => p.draw(ctx));
-
             if(!player.dead) player.draw(ctx);
             if(!enemy.dead) enemy.draw(ctx);
 
-            // 子弹绘制 (发光)
+            // 绘制子弹
             bullets.forEach(b => {
-                ctx.fillStyle=b.c; 
-                if(b.style !== 'basic') { ctx.shadowBlur=10; ctx.shadowColor=b.c; }
-                ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle=b.c;
+                if(b.style==='fireball' || b.style==='plasma') { ctx.shadowBlur=10; ctx.shadowColor=b.c; }
+                
+                if(b.style==='arrow') {
+                    // 箭头形子弹
+                    let a = Math.atan2(b.vy, b.vx);
+                    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(a);
+                    ctx.beginPath(); ctx.moveTo(5,0); ctx.lineTo(-5,4); ctx.lineTo(-5,-4); ctx.fill();
+                    ctx.restore();
+                } else {
+                    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+                }
                 ctx.shadowBlur=0;
             });
 
-            // 特效
+            // 绘制特效
             effects.forEach(e => {
-                if(e.type==='explode') { ctx.globalAlpha=e.life/20; ctx.fillStyle=e.c; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
-                if(e.type==='area' && !e.done) { 
-                    ctx.strokeStyle=e.c; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.stroke(); 
-                    ctx.fillStyle=e.c; ctx.globalAlpha=0.2; ctx.fill(); ctx.globalAlpha=1;
-                    // 蓄力圈
-                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r * (1-e.timer/40), 0, Math.PI*2); ctx.strokeStyle='white'; ctx.stroke();
+                if(e.type==='boom') {
+                    ctx.globalAlpha=e.life/20; ctx.fillStyle=e.c; 
+                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill(); 
+                    ctx.globalAlpha=1;
                 }
-                if(e.type==='shockwave') {
-                    ctx.strokeStyle=e.c; ctx.lineWidth=3; ctx.globalAlpha=e.life/20;
-                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
+                if(e.type==='slash') {
+                    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
+                    ctx.strokeStyle=e.c; ctx.lineWidth=4; ctx.shadowBlur=10; ctx.shadowColor=e.c;
+                    ctx.beginPath(); ctx.arc(0,0,60,-1.0,1.0); ctx.stroke();
+                    ctx.restore();
+                }
+                if(e.type==='area' && !e.done) {
+                    ctx.strokeStyle=e.c; ctx.lineWidth=2;
+                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.stroke();
+                    ctx.fillStyle=e.c; ctx.globalAlpha=0.2; ctx.fill(); ctx.globalAlpha=1;
+                    // 倒计时环
+                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.life/40),0,Math.PI*2); ctx.strokeStyle='white'; ctx.stroke();
                 }
                 if(e.type==='laser') {
                     ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
                     ctx.shadowBlur=20; ctx.shadowColor=e.c;
-                    let w = 10 + Math.sin(Date.now()/50)*5;
-                    ctx.fillStyle='white'; ctx.fillRect(0,-w/2,600,w);
-                    ctx.fillStyle=e.c; ctx.globalAlpha=0.5; ctx.fillRect(0,-w,600,w*2);
+                    ctx.fillStyle='white'; ctx.fillRect(0,-5,800,10);
+                    ctx.fillStyle=e.c; ctx.globalAlpha=0.5; ctx.fillRect(0,-15,800,30);
                     ctx.restore(); ctx.globalAlpha=1; ctx.shadowBlur=0;
                 }
-                if(e.type==='slash') {
-                    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
-                    ctx.strokeStyle='white'; ctx.lineWidth=4; ctx.shadowBlur=10; ctx.shadowColor='white';
-                    ctx.beginPath(); ctx.arc(0,0,60,-0.8,0.8); ctx.stroke();
-                    ctx.restore(); ctx.shadowBlur=0;
+                if(e.type==='shadow') { // 闪现残影
+                    ctx.fillStyle=e.c; ctx.globalAlpha=e.life/20;
+                    ctx.beginPath(); ctx.arc(e.x,e.y,20,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
                 }
             });
 
-            texts.forEach(t => { ctx.fillStyle='#fff'; ctx.font='bold 14px Arial'; ctx.fillText(t.val, t.x, t.y); });
+            texts.forEach(t => { ctx.fillStyle=t.c; ctx.font='bold 12px Arial'; ctx.fillText(t.v, t.x, t.y); });
         }
 
-        function loop() { if(gameState==='PLAYING') { update(); draw(); requestAnimationFrame(loop); } }
+        function loop() { if(gameState==='PLAYING'){update(); draw(); requestAnimationFrame(loop);} }
 
-        // --- 辅助 ---
-        function getTargets(myTeam) {
-            let res=[];
-            if(myTeam==='blue') { if(!redTower.dead)res.push(redTower); if(!enemy.dead)res.push(enemy); units.forEach(u=>{if(u.team==='red')res.push(u)}); }
-            else { if(!blueTower.dead)res.push(blueTower); if(!player.dead)res.push(player); units.forEach(u=>{if(u.team==='blue')res.push(u)}); }
-            return res;
-        }
-        function findNearest(me, range=9999) {
-            let min=range, res=null;
-            getTargets(me.team).forEach(t => { let d=Math.hypot(t.x-me.x, t.y-me.y); if(d<min){min=d; res=t;} });
-            return res;
-        }
-        function checkHit(b) {
-            for(let t of getTargets(b.team)) if(Math.hypot(t.x-b.x, t.y-b.y) < t.r+b.r) return t;
-            return null;
-        }
-        function dealArea(x,y,r,dmg,team) {
-            getTargets(team).forEach(t => { if(Math.hypot(t.x-x, t.y-y) < r+t.r) t.hit(dmg); });
-        }
-
-        // --- 触摸 ---
+        // --- 触摸控制 ---
         const jz = document.getElementById('joystick-container');
         const js = document.getElementById('joystick-stick');
         let jStart={x:0,y:0};
@@ -489,9 +458,10 @@
             e.preventDefault(); let r=document.getElementById('joystick-base').getBoundingClientRect();
             jStart={x:r.left+r.width/2, y:r.top+r.height/2}; joystick.active=true; moveJoy(e.changedTouches[0]);
         },{passive:false});
-        jz.addEventListener('touchmove', e=>{e.preventDefault(); if(joystick.active) moveJoy(e.changedTouches[0]);},{passive:false});
+        jz.addEventListener('touchmove', e=>{e.preventDefault(); if(joystick.active) moveJoy(e.changedTouches[0]);}, {passive:false});
         const endJ=e=>{e.preventDefault(); joystick.active=false; js.style.transform=`translate(-50%,-50%)`;};
         jz.addEventListener('touchend', endJ); jz.addEventListener('touchcancel', endJ);
+
         function moveJoy(t) {
             let dx=t.clientX-jStart.x, dy=t.clientY-jStart.y;
             let ang=Math.atan2(dy,dx);
@@ -502,13 +472,16 @@
 
         window.handleSkill = function(e, k) {
             e.preventDefault(); if(player.dead) return;
-            
-            // AA: 短距离非指向性
+
+            // 普攻 (AA)
             if(k==='AA') {
-                let t = findNearest(player, 300);
+                if(player.cds.AA > 0) return;
+                let t = findNearest(player, 250);
                 let ang = t ? Math.atan2(t.y-player.y, t.x-player.x) : player.face;
-                // 普攻生命周期 25 * 速度 5 = 125像素距离 (原来是250)
-                bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*5, vy:Math.sin(ang)*5, dmg:40, team:'blue', life:25, r:4, c:'#fff', style:'basic'});
+                // 普攻距离缩短 (life=15, speed=10 => 150px)
+                let pType = player.type==='shooter'?'arrow':'orb';
+                bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*10, vy:Math.sin(ang)*10, dmg:40, team:'blue', life:15, r:5, c:'white', style:pType});
+                player.cds.AA = 30; // 0.5秒间隔
                 return;
             }
 
@@ -518,26 +491,84 @@
             let ty = t ? t.y : player.y+Math.sin(player.face)*150;
             let a = Math.atan2(ty-player.y, tx-player.x);
 
-            if(k==='Q') {
-                if(player.type==='warrior') {
-                    effects.push({type:'slash', x:player.x, y:player.y, a:a, life:15});
-                    dealArea(player.x+Math.cos(a)*60, player.y+Math.sin(a)*60, 70, 100, 'blue');
-                } else if(player.type==='mage') {
-                    // 法师火球特效
-                    bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*6, vy:Math.sin(a)*6, dmg:120, team:'blue', life:50, r:15, c:'#ffaa00', style:'fireball'});
-                } else {
-                    bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*8, vy:Math.sin(a)*8, dmg:100, team:'blue', life:40, r:8, c:'#00ff00', style:'basic'});
+            // === 法师技能 ===
+            if(player.type === 'mage') {
+                if(k==='Q') { // 寒冰箭
+                    bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*8, vy:Math.sin(a)*8, dmg:120, team:'blue', life:60, r:12, c:'#00eaff', style:'fireball'});
+                }
+                if(k==='W') { // 闪现
+                    effects.push({type:'shadow', x:player.x, y:player.y, c:'#00eaff', life:20});
+                    player.x += Math.cos(a)*120; player.y += Math.sin(a)*120;
+                    effects.push({type:'boom', x:player.x, y:player.y, r:30, c:'#00eaff', life:10});
+                }
+                if(k==='E') { // 暴风雪
+                    effects.push({type:'area', x:tx, y:ty, r:80, c:'#00eaff', dmg:150, team:'blue', life:60});
+                }
+                if(k==='R') { // 激光
+                    effects.push({type:'laser', x:player.x, y:player.y, a:a, c:'#a300ff', team:'blue', dmg:500, life:20});
+                }
+            } 
+            // === 射手技能 ===
+            else if(player.type === 'shooter') {
+                if(k==='Q') { // 三重射击
+                    for(let i=-1; i<=1; i++) {
+                        let ang = a + i*0.3;
+                        bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*12, vy:Math.sin(ang)*12, dmg:60, team:'blue', life:30, r:4, c:'#7bed9f', style:'plasma'});
+                    }
+                }
+                if(k==='W') { // 翻滚
+                    player.x += Math.cos(a)*100; player.y += Math.sin(a)*100;
+                    player.buffs.push({type:'speed', timer:60}); // 加速buff
+                }
+                if(k==='E') { // 手雷
+                    effects.push({type:'area', x:tx, y:ty, r:60, c:'orange', dmg:180, team:'blue', life:40});
+                }
+                if(k==='R') { // 狙击
+                    bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*25, vy:Math.sin(a)*25, dmg:400, team:'blue', life:60, r:6, c:'red', style:'plasma'});
                 }
             }
-            if(k==='W') { player.x+=Math.cos(a)*80; player.y+=Math.sin(a)*80; spawnParticles(player.x, player.y, '#fff', 10); }
-            if(k==='E') { effects.push({type:'area', x:tx, y:ty, r:60, c:player.type==='mage'?'#00eaff':'orange', dmg:120, team:'blue', timer:40, done:false}); }
-            if(k==='R') { 
-                if(player.type==='mage') effects.push({type:'laser', x:player.x, y:player.y, a:a, c:'#00eaff', team:'blue', dmg:400, life:25});
-                else if(player.type==='shooter') bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*15, vy:Math.sin(a)*15, dmg:400, team:'blue', life:40, r:10, c:'#f0f', style:'snipe'});
-                else effects.push({type:'area', x:player.x, y:player.y, r:200, c:'#8B4513', dmg:350, team:'blue', timer:40, done:false});
+            // === 战士技能 ===
+            else if(player.type === 'warrior') {
+                if(k==='Q') { // 烈火斩
+                    effects.push({type:'slash', x:player.x, y:player.y, a:a, c:'#ff4757', life:15});
+                    dealArea(player.x+Math.cos(a)*50, player.y+Math.sin(a)*50, 80, 100, 'blue');
+                }
+                if(k==='W') { // 冲锋
+                    let dashFrame = 0;
+                    let dashId = setInterval(()=>{
+                        player.x+=Math.cos(a)*15; player.y+=Math.sin(a)*15;
+                        dealArea(player.x, player.y, 30, 20, 'blue');
+                        dashFrame++;
+                        if(dashFrame>10) clearInterval(dashId);
+                    }, 16);
+                }
+                if(k==='E') { // 剑刃风暴
+                    player.buffs.push({type:'spin', timer:180}); // 持续3秒
+                }
+                if(k==='R') { // 崩山击
+                    player.x = tx; player.y = ty; // 跳跃
+                    effects.push({type:'boom', x:tx, y:ty, r:120, c:'#ff4757', life:20});
+                    dealArea(tx, ty, 120, 300, 'blue');
+                }
             }
+
             player.cds[k] = player.cfg.cd[k];
         };
+
+        // --- 辅助 ---
+        function getTargets(myTeam) {
+            let res=[];
+            if(myTeam==='blue') { if(!redTower.dead)res.push(redTower); if(!enemy.dead)res.push(enemy); units.forEach(u=>{if(u.team==='red')res.push(u)}); }
+            else { if(!blueTower.dead)res.push(blueTower); if(!player.dead)res.push(player); units.forEach(u=>{if(u.team==='blue')res.push(u)}); }
+            return res;
+        }
+        function findNearest(me, range) {
+            let min=range, res=null;
+            getTargets(me.team).forEach(t => { let d=Math.hypot(t.x-me.x, t.y-me.y); if(d<min){min=d; res=t;} });
+            return res;
+        }
+        function checkHit(b) { for(let t of getTargets(b.team)) if(Math.hypot(t.x-b.x, t.y-b.y) < t.r+b.r) return t; return null; }
+        function dealArea(x,y,r,dmg,team) { getTargets(team).forEach(t => { if(Math.hypot(t.x-x, t.y-y) < r+t.r) t.hit(dmg); }); }
 
         window.startGame = function(t) { initGame(t); }
     </script>
