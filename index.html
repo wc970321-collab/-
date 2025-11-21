@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Web MOBA: 动态复活版</title>
+    <title>Web MOBA: 装备系统版</title>
     <style>
         * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
@@ -11,86 +11,120 @@
         #game-container { width: 100%; height: 65%; position: relative; background: #0d0d0d; border-bottom: 2px solid #333; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
         
+        /* HUD */
         #hud-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        #top-bar { display: flex; justify-content: space-between; padding: 10px 20px; color: white; font-weight: bold; text-shadow: 0 2px 4px black; font-size: 14px;}
-        .team-blue { color: #00eaff; } .team-red { color: #ff4757; }
+        
+        /* 顶部栏：金币、商店、返回 */
+        #top-bar { display: flex; align-items: center; padding: 10px; pointer-events: auto; gap: 15px; }
+        .icon-btn { width: 40px; height: 40px; background: rgba(0,0,0,0.5); border: 1px solid #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; cursor: pointer; }
+        .gold-display { color: #ffd700; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 0 #000; display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 15px;}
+        
+        /* 基地血量 */
+        .base-hp { position: absolute; font-size: 12px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black; }
+        .hp-red { top: 10px; right: 10px; color: #ff4757; }
+        .hp-blue { bottom: 10px; left: 10px; color: #00eaff; }
 
+        /* 装备栏 */
+        #inventory { position: absolute; left: 10px; top: 60px; display: flex; flex-direction: column; gap: 5px; }
+        .item-slot { width: 30px; height: 30px; background: rgba(0,0,0,0.5); border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+        /* 控制区 */
         #controls-area { width: 100%; height: 35%; background-color: #1a1a1a; position: relative; display: flex; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); }
         #joystick-container { width: 40%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; }
         #joystick-base { width: 120px; height: 120px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; position: relative; }
         #joystick-stick { width: 50px; height: 50px; background: linear-gradient(135deg, #ddd, #888); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
         #skills-container { width: 60%; height: 100%; position: relative; }
-        .skill-btn {
-            position: absolute; width: 60px; height: 60px; background: #252525;
-            border: 2px solid #444; border-radius: 50%; color: #eee;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; box-shadow: 0 5px 10px rgba(0,0,0,0.5);
-            font-size: 16px; transition: transform 0.1s;
-        }
-        .skill-btn:active { background: #444; transform: scale(0.9); border-color: #aaa;}
+        .skill-btn { position: absolute; width: 60px; height: 60px; background: #252525; border: 2px solid #444; border-radius: 50%; color: #eee; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 5px 10px rgba(0,0,0,0.5); font-size: 16px; transition: transform 0.1s; }
+        .skill-btn:active { background: #444; transform: scale(0.9); }
         
         .p-q { bottom: 20px; right: 140px; border-color: #00eaff; color: #00eaff; }
         .p-w { bottom: 90px; right: 120px; border-color: #7bed9f; color: #7bed9f; }
         .p-e { bottom: 130px; right: 40px; border-color: #ffa502; color: #ffa502; }
-        .p-r { bottom: 170px; right: 130px; width: 55px!important; height: 55px!important; border-color: #ff4757; background: #300; color: #ff4757; box-shadow: 0 0 15px rgba(255,71,87,0.4);} 
+        .p-r { bottom: 170px; right: 130px; width: 55px!important; height: 55px!important; border-color: #ff4757; background: #300; color: #ff4757; } 
         .p-aa{ bottom: 20px; right: 20px; width: 85px!important; height: 85px!important; background: #333; font-size: 24px; border-color: #fff; color: white;} 
-
         .cd-overlay { position: absolute; top:0; left:0; width:100%; height:100%; border-radius: 50%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; color: #fff; font-size: 20px; }
 
+        /* 商店弹窗 */
+        #shop-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; background: #222; border: 2px solid #ffd700; border-radius: 10px; padding: 20px; display: none; pointer-events: auto; z-index: 100; }
+        .shop-title { color: #ffd700; text-align: center; margin-bottom: 15px; font-weight: bold; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .shop-item { background: #333; padding: 10px; border-radius: 5px; text-align: center; cursor: pointer; border: 1px solid #444; }
+        .shop-item:active { background: #444; }
+        .shop-icon { font-size: 24px; margin-bottom: 5px; }
+        .shop-cost { color: #ffd700; font-size: 12px; }
+        .shop-desc { color: #aaa; font-size: 10px; margin-top: 2px; }
+        #close-shop { margin-top: 15px; width: 100%; padding: 8px; background: #444; color: white; border: none; border-radius: 5px; }
+
+        /* 选人/结算 */
         .overlay-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
         .hidden { display: none !important; }
         .hero-box { display: flex; gap: 15px; margin-top: 20px; }
-        .h-card { width: 100px; padding: 20px; background: #222; border: 1px solid #444; border-radius: 12px; text-align: center; color: white; cursor: pointer; transition: 0.2s; }
-        .h-card:active { transform: scale(0.95); border-color: white; background: #333; }
-        h1 { color: #ffd700; font-size: 24px; margin-bottom: 10px; }
-        .desc { font-size: 10px; color: #aaa; margin-top: 5px; line-height: 1.4; }
+        .h-card { width: 100px; padding: 20px; background: #222; border: 1px solid #444; border-radius: 12px; text-align: center; color: white; cursor: pointer; }
         .btn-main { padding: 12px 40px; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 25px; margin-top: 30px; }
     </style>
 </head>
 <body>
 
+    <!-- 选人 -->
     <div id="selection-screen" class="overlay-screen">
-        <h1>英雄选择</h1>
+        <h1 style="color:#ffd700">英雄选择</h1>
         <div class="hero-box">
-            <div class="h-card" onclick="startGame('mage')">
-                <div style="font-size:35px;">🧙‍♂️</div>
-                <div style="color:#00eaff;">秘术法师</div>
-                <div class="desc">远程爆发</div>
-            </div>
-            <div class="h-card" onclick="startGame('shooter')">
-                <div style="font-size:35px;">🏹</div>
-                <div style="color:#7bed9f;">丛林射手</div>
-                <div class="desc">极速射击</div>
-            </div>
-            <div class="h-card" onclick="startGame('warrior')">
-                <div style="font-size:35px;">⚔️</div>
-                <div style="color:#ff4757;">狂暴战士</div>
-                <div class="desc">近战坦克</div>
-            </div>
+            <div class="h-card" onclick="startGame('mage')">🧙‍♂️<br><span style="color:#00eaff">法师</span></div>
+            <div class="h-card" onclick="startGame('shooter')">🏹<br><span style="color:#7bed9f">射手</span></div>
+            <div class="h-card" onclick="startGame('warrior')">⚔️<br><span style="color:#ff4757">战士</span></div>
         </div>
     </div>
 
+    <!-- 商店 -->
+    <div id="shop-modal">
+        <div class="shop-title">装备商店</div>
+        <div class="shop-grid">
+            <div class="shop-item" onclick="buyItem(0)">
+                <div class="shop-icon">⚔️</div>
+                <div class="shop-cost">500g</div>
+                <div class="shop-desc">攻击 +20</div>
+            </div>
+            <div class="shop-item" onclick="buyItem(1)">
+                <div class="shop-icon">🏹</div>
+                <div class="shop-cost">500g</div>
+                <div class="shop-desc">攻速 +20%</div>
+            </div>
+            <div class="shop-item" onclick="buyItem(2)">
+                <div class="shop-icon">🩸</div>
+                <div class="shop-cost">600g</div>
+                <div class="shop-desc">吸血 +15%</div>
+            </div>
+        </div>
+        <button id="close-shop" onclick="toggleShop()">关闭</button>
+    </div>
+
+    <!-- 结算 -->
     <div id="end-screen" class="overlay-screen hidden">
-        <h1 id="end-msg">游戏结束</h1>
+        <h1 id="end-msg" style="color:white; font-size:30px;"></h1>
         <button class="btn-main" onclick="location.reload()">返回大厅</button>
     </div>
 
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="hud-layer">
+            <!-- 顶部栏 -->
             <div id="top-bar">
-                <div onclick="location.reload()" style="font-size:24px;">🏠</div>
-                <div class="team-red">敌方基地: <span id="hp-red">5000</span></div>
+                <div class="icon-btn" onclick="location.reload()">🏠</div>
+                <div class="gold-display"><span id="gold-val">0</span> 💰</div>
+                <div class="icon-btn" onclick="toggleShop()">🛒</div>
             </div>
-            <div style="position:absolute; bottom:10px; left:20px; font-weight:bold;" class="team-blue">我方基地: <span id="hp-blue">5000</span></div>
+            <!-- 基地血量 -->
+            <div class="base-hp hp-red">敌方基地: <span id="hp-red">5000</span></div>
+            <div class="base-hp hp-blue">我方基地: <span id="hp-blue">5000</span></div>
+            
+            <!-- 装备展示 -->
+            <div id="inventory"></div>
         </div>
     </div>
 
     <div id="controls-area">
-        <div id="joystick-container">
-            <div id="joystick-base"><div id="joystick-stick"></div></div>
-        </div>
+        <div id="joystick-container"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
         <div id="skills-container">
             <div class="skill-btn p-aa" ontouchstart="handleSkill(event, 'AA')">⚔️</div>
             <div class="skill-btn p-q" ontouchstart="handleSkill(event, 'Q')">Q<div id="cd-q" class="cd-overlay"></div></div>
@@ -104,16 +138,24 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const container = document.getElementById('game-container');
-        
         function resize() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; }
         window.addEventListener('resize', resize); resize();
 
+        // --- 配置 ---
         const CONFIG = { speed: { hero: 2.2, minion: 0.8, bullet: 6.0 }, spawnRate: 600 };
+        
+        // 装备定义
+        const ITEMS = [
+            { id: 0, name: "铁剑", icon: "⚔️", cost: 500, stats: { ad: 20, as: 0, vamp: 0 } },
+            { id: 1, name: "短弓", icon: "🏹", cost: 500, stats: { ad: 0, as: 0.2, vamp: 0 } },
+            { id: 2, name: "镰刀", icon: "🩸", cost: 600, stats: { ad: 10, as: 0, vamp: 0.15 } }
+        ];
 
+        // 英雄基础属性 (增加 baseAD)
         const HEROES = {
-            mage: { hp: 900, color: '#00eaff', type:'mage', speed: 2.0, cd: {Q:50, W:300, E:240, R:800} },
-            shooter: { hp: 750, color: '#7bed9f', type:'shooter', speed: 2.3, cd: {Q:40, W:180, E:360, R:900} },
-            warrior: { hp: 1800, color: '#ff4757', type:'warrior', speed: 2.1, cd: {Q:30, W:240, E:400, R:700} }
+            mage: { hp: 900, color: '#00eaff', type:'mage', speed: 2.0, baseAD: 50, cd: {Q:50, W:300, E:240, R:800} },
+            shooter: { hp: 750, color: '#7bed9f', type:'shooter', speed: 2.3, baseAD: 60, cd: {Q:40, W:180, E:360, R:900} },
+            warrior: { hp: 1800, color: '#ff4757', type:'warrior', speed: 2.1, baseAD: 70, cd: {Q:30, W:240, E:400, R:700} }
         };
 
         let gameState = 'MENU';
@@ -121,6 +163,7 @@
         let units=[], bullets=[], effects=[], texts=[], particles=[];
         let joystick = { active:false, dx:0, dy:0, angle: -Math.PI/2 };
 
+        // --- 粒子 ---
         class Particle {
             constructor(x, y, c, spd, life) {
                 this.x=x; this.y=y; this.c=c; this.life=1.0; this.decay=1/life;
@@ -136,9 +179,8 @@
                 ctx.globalAlpha=1;
             }
         }
-        function spawnParticles(x,y,c,n,spd=2) { for(let i=0;i<n;i++) particles.push(new Particle(x,y,c,spd,30)); }
 
-        // --- 基础实体 ---
+        // --- 实体 ---
         class Entity {
             constructor(x,y,r,c,team,hp,maxHp) {
                 this.x=x; this.y=y; this.r=r; this.c=c; this.team=team;
@@ -151,28 +193,79 @@
                 ctx.fillStyle='#222'; ctx.fillRect(this.x-15, this.y-this.r-10, 30, 4);
                 ctx.fillStyle=this.team==='blue'?'#00eaff':'#ff4757'; ctx.fillRect(this.x-15, this.y-this.r-10, 30*pct, 4);
             }
-            hit(dmg) {
+            hit(dmg, attacker) {
                 if(this.dead) return;
                 this.hp-=dmg;
-                texts.push({x:this.x, y:this.y-20, v:Math.floor(dmg), l:30, c:'#fff'});
+                texts.push({x:this.x, y:this.y-20, v:Math.floor(dmg), l:30, c:'#fff', size:12});
+                
+                // 吸血逻辑
+                if(attacker && attacker.stats && attacker.stats.vamp > 0) {
+                    let heal = dmg * attacker.stats.vamp;
+                    attacker.hp = Math.min(attacker.hp + heal, attacker.maxHp);
+                    if(Math.random()<0.3) texts.push({x:attacker.x, y:attacker.y-30, v:'+'+Math.floor(heal), l:30, c:'#0f0', size:10});
+                }
+
                 if(this.hp<=0) {
                     this.dead=true; this.hp=0;
+                    // 金币掉落逻辑
+                    if(attacker && attacker instanceof Hero && attacker.team !== this.team) {
+                        let goldAmt = (this instanceof Hero) ? 300 : 50;
+                        attacker.gainGold(goldAmt);
+                        texts.push({x:this.x, y:this.y-40, v:`+${goldAmt}g`, l:50, c:'#ffd700', size:16});
+                    }
                     spawnParticles(this.x,this.y,this.c,15,3);
                     effects.push({type:'boom', x:this.x, y:this.y, r:this.r*2, c:this.c, life:15});
                 }
             }
         }
 
-        // --- 英雄类 (含动态复活逻辑) ---
+        // --- 英雄类 ---
         class Hero extends Entity {
             constructor(x,y,team,type) {
                 super(x,y,20,HEROES[type].color,team,HEROES[type].hp,HEROES[type].hp);
                 this.cfg=HEROES[type]; this.type=type; this.cds={Q:0,W:0,E:0,R:0,AA:0};
                 this.face=team==='blue'?-Math.PI/2:Math.PI/2; this.spinAngle=0;
-                this.deathCount = 0; // 死亡次数
-                this.respawnTimer = 0; // 复活倒计时 (帧)
+                this.deathCount = 0; this.respawnTimer = 0;
+                
+                // 经济与装备
+                this.gold = 0;
+                this.inventory = [];
+                this.stats = { ad: this.cfg.baseAD, as: 1.0, vamp: 0 }; // 实时属性
             }
+            
+            gainGold(amount) {
+                this.gold += amount;
+                if(this === player) document.getElementById('gold-val').innerText = this.gold;
+            }
+
+            buy(itemId) {
+                let item = ITEMS[itemId];
+                if(this.gold >= item.cost) {
+                    this.gold -= item.cost;
+                    this.inventory.push(item);
+                    this.recalcStats();
+                    if(this === player) {
+                        document.getElementById('gold-val').innerText = this.gold;
+                        renderInventory();
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            recalcStats() {
+                this.stats.ad = this.cfg.baseAD;
+                this.stats.as = 1.0;
+                this.stats.vamp = 0;
+                this.inventory.forEach(i => {
+                    this.stats.ad += i.stats.ad;
+                    this.stats.as += i.stats.as;
+                    this.stats.vamp += i.stats.vamp;
+                });
+            }
+
             update() {
+                // 冷却根据攻速缩减 (仅影响AA)
                 for(let k in this.cds) if(this.cds[k]>0) this.cds[k]--;
                 if(this.buffs.find(b=>b.type==='spin')) this.spinAngle+=0.5;
                 for(let i=this.buffs.length-1; i>=0; i--) {
@@ -180,59 +273,41 @@
                     if(this.buffs[i].timer<=0) this.buffs.splice(i,1);
                 }
             }
-            // 重写hit，加入动态复活逻辑
-            hit(dmg) {
-                super.hit(dmg);
+
+            hit(dmg, attacker) {
+                super.hit(dmg, attacker);
                 if(this.dead && this.respawnTimer <= 0) {
                     this.deathCount++;
-                    // 基础复活时间: 5秒(300帧)
-                    // 每次死亡增加: 1秒(60帧)
-                    // 公式: 300 + (次数-1) * 60
                     this.respawnTimer = 300 + (this.deathCount - 1) * 60;
                 }
             }
+
             draw(ctx) {
-                // 复活倒计时显示
                 if(this.dead) {
                     if(this.respawnTimer > 0) {
-                        ctx.save();
-                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                        ctx.font = 'bold 30px Arial';
-                        ctx.textAlign = 'center';
-                        // 阴影
-                        ctx.shadowColor = 'black'; ctx.shadowBlur = 5;
-                        ctx.fillText("复活: " + Math.ceil(this.respawnTimer/60) + "s", this.x, this.y);
-                        ctx.restore();
+                        ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
+                        ctx.fillText(Math.ceil(this.respawnTimer/60) + "s", this.x, this.y); ctx.restore();
                     }
                     return; 
                 }
-
                 ctx.save(); ctx.translate(this.x, this.y);
-                
                 // 阴影
                 ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(0, this.r*0.8, this.r, this.r*0.4, 0, 0, Math.PI*2); ctx.fill();
-
+                
                 if(this.buffs.find(b=>b.type==='spin')) {
                     ctx.save(); ctx.rotate(this.spinAngle);
-                    ctx.fillStyle = 'rgba(255, 80, 80, 0.2)'; 
-                    ctx.beginPath(); ctx.arc(0,0,60,0,Math.PI*2); ctx.fill(); 
-                    ctx.fillStyle = '#ff4757';
-                    ctx.beginPath(); ctx.arc(60, 0, 5, 0, Math.PI*2); ctx.fill();
-                    ctx.beginPath(); ctx.arc(-60, 0, 5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = 'rgba(255, 80, 80, 0.2)'; ctx.beginPath(); ctx.arc(0,0,60,0,Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.arc(60, 0, 5, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-60, 0, 5, 0, Math.PI*2); ctx.fill();
                     ctx.restore();
                 }
-
                 ctx.rotate(this.face); ctx.fillStyle=this.c;
                 if(this.type==='mage') {
                     ctx.shadowBlur=10; ctx.shadowColor=this.c; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill();
                     ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
                 } else if(this.type==='shooter') {
                     ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,10); ctx.lineTo(-10,-10); ctx.fill();
-                } else {
-                    ctx.fillRect(-15,-15,30,30);
-                }
+                } else { ctx.fillRect(-15,-15,30,30); }
                 ctx.shadowBlur=0; ctx.restore();
-
                 let pct = Math.max(0, this.hp/this.maxHp);
                 ctx.fillStyle='#222'; ctx.fillRect(this.x-15, this.y-this.r-10, 30, 4);
                 ctx.fillStyle=this.team==='blue'?'#00eaff':'#ff4757'; ctx.fillRect(this.x-15, this.y-this.r-10, 30*pct, 4);
@@ -243,7 +318,6 @@
             document.getElementById('selection-screen').classList.add('hidden');
             resize();
             let cx=canvas.width/2, h=canvas.height;
-            
             blueTower = new Entity(cx, h-60, 30, '#0099ff', 'blue', 5000, 5000);
             redTower = new Entity(cx, 60, 30, '#ff3333', 'red', 5000, 5000);
             
@@ -255,28 +329,53 @@
                 ctx.fillStyle='#222'; ctx.fillRect(this.x-20, this.y-45, 40, 5);
                 ctx.fillStyle=this.c; ctx.fillRect(this.x-20, this.y-45, 40*pct, 5);
             };
-            blueTower.draw = towerDraw.bind(blueTower);
-            redTower.draw = towerDraw.bind(redTower);
-
+            blueTower.draw = towerDraw.bind(blueTower); redTower.draw = towerDraw.bind(redTower);
             player = new Hero(cx, h-150, 'blue', heroType);
             enemy = new Hero(cx, 150, 'red', 'warrior'); 
             units=[]; bullets=[]; effects=[]; texts=[]; particles=[];
+            
+            // UI reset
+            document.getElementById('gold-val').innerText = "0";
+            document.getElementById('inventory').innerHTML = "";
+            
             gameState = 'PLAYING'; loop();
         }
 
+        // --- UI操作 ---
+        function toggleShop() {
+            let shop = document.getElementById('shop-modal');
+            shop.style.display = shop.style.display === 'block' ? 'none' : 'block';
+        }
+        function buyItem(id) {
+            if(player.buy(id)) {
+                // 购买成功特效?
+            }
+        }
+        function renderInventory() {
+            let div = document.getElementById('inventory');
+            div.innerHTML = '';
+            player.inventory.forEach(item => {
+                let slot = document.createElement('div');
+                slot.className = 'item-slot';
+                slot.innerText = item.icon;
+                div.appendChild(slot);
+            });
+        }
+
+        function spawnParticles(x,y,c,n,spd=2) { for(let i=0;i<n;i++) particles.push(new Particle(x,y,c,spd,30)); }
+
         function update() {
-            // --- 复活逻辑 (倒计时) ---
             if(player.dead) {
                 player.respawnTimer--;
-                if(player.respawnTimer <= 0) {
-                    player.dead = false; player.hp = player.maxHp; player.x = blueTower.x; player.y = blueTower.y;
-                }
+                if(player.respawnTimer <= 0) { player.dead = false; player.hp = player.maxHp; player.x = blueTower.x; player.y = blueTower.y; }
             }
             if(enemy.dead) {
                 enemy.respawnTimer--;
-                if(enemy.respawnTimer <= 0) {
-                    enemy.dead = false; enemy.hp = enemy.maxHp; enemy.x = redTower.x; enemy.y = redTower.y;
-                }
+                if(enemy.respawnTimer <= 0) { enemy.dead = false; enemy.hp = enemy.maxHp; enemy.x = redTower.x; enemy.y = redTower.y; }
+            } else {
+                // AI 买装备逻辑
+                if(enemy.gold >= 600) enemy.buy(Math.floor(Math.random()*3));
+                else if(enemy.gold >= 500 && Math.random()<0.5) enemy.buy(Math.floor(Math.random()*2));
             }
 
             if(!player.dead) {
@@ -297,7 +396,7 @@
 
             [player, enemy].forEach(h => {
                 if(!h.dead && h.buffs.find(b=>b.type==='spin')) {
-                    if(Math.random()<0.3) dealArea(h.x, h.y, 60, 5, h.team);
+                    if(Math.random()<0.3) dealArea(h.x, h.y, 60, h.stats.ad*0.2, h.team, h);
                     if(Math.random()<0.2) spawnParticles(h.x+(Math.random()-0.5)*40, h.y+(Math.random()-0.5)*40, 'orange', 1);
                 }
             });
@@ -314,7 +413,10 @@
                 }
                 if(t && enemy.cds.AA<=0 && Math.hypot(t.x-enemy.x,t.y-enemy.y)<100) {
                     effects.push({type:'impact', x:t.x, y:t.y, c:'red', life:5});
-                    t.hit(30); enemy.cds.AA = 80;
+                    // 敌方普攻伤害也基于AD
+                    t.hit(enemy.stats.ad, enemy); 
+                    // 攻速影响冷却
+                    enemy.cds.AA = 30 / enemy.stats.as;
                 }
             }
 
@@ -360,11 +462,12 @@
                     if(b.target.dead) { b.life=0; continue; }
                     let a = Math.atan2(b.target.y-b.y, b.target.x-b.x);
                     b.x+=Math.cos(a)*b.speed; b.y+=Math.sin(a)*b.speed;
-                    if(Math.hypot(b.target.x-b.x, b.target.y-b.y)<15) { b.target.hit(b.dmg); b.life=0; }
+                    // 子弹携带 attacker 属性
+                    if(Math.hypot(b.target.x-b.x, b.target.y-b.y)<15) { b.target.hit(b.dmg, b.attacker); b.life=0; }
                 } else {
                     b.x+=b.vx; b.y+=b.vy;
                     let hit = checkHit(b);
-                    if(hit) { hit.hit(b.dmg); b.life=0; }
+                    if(hit) { hit.hit(b.dmg, b.attacker); b.life=0; }
                 }
                 if(b.style!=='orb' && Math.random()<0.5) particles.push(new Particle(b.x, b.y, b.c, 0.5, 10));
             }
@@ -375,7 +478,7 @@
                 if(e.type==='area') {
                     if(e.life<=0 && !e.done) {
                         e.done=true; e.life=15; e.type='boom';
-                        dealArea(e.x, e.y, e.r, e.dmg, e.team);
+                        dealArea(e.x, e.y, e.r, e.dmg, e.team, e.attacker);
                     } else if(e.life > 0) { continue; }
                 }
                 if(e.life<=0) effects.splice(i,1);
@@ -389,14 +492,13 @@
             if(blueTower.hp<=0 || redTower.hp<=0) {
                 gameState='END';
                 document.getElementById('end-screen').classList.remove('hidden');
+                document.getElementById('end-msg').innerText = redTower.hp<=0 ? "胜利！" : "失败！";
             }
         }
 
         function draw() {
             ctx.fillStyle='#101010'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            
             [blueTower, redTower].forEach(t => { if(!t.dead) t.draw(ctx); });
-
             units.forEach(u => u.draw(ctx));
             particles.forEach(p => p.draw(ctx));
             if(!player.dead || player.respawnTimer>0) player.draw(ctx);
@@ -414,38 +516,25 @@
             });
 
             effects.forEach(e => {
-                if(e.type==='boom') {
-                    ctx.globalAlpha=e.life/15; ctx.fillStyle=e.c; 
-                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-                }
-                if(e.type==='slash') {
-                    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
-                    ctx.fillStyle = `rgba(255, 71, 87, ${e.life/15})`; 
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0, 70, -0.8, 0.8); ctx.fill(); ctx.restore();
-                }
-                if(e.type==='area' && !e.done) {
-                    ctx.strokeStyle=e.c; ctx.lineWidth=2;
-                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.stroke();
-                    ctx.fillStyle=e.c; ctx.globalAlpha=0.2; ctx.fill(); ctx.globalAlpha=1;
-                    ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.life/40),0,Math.PI*2); ctx.strokeStyle='white'; ctx.stroke();
-                }
-                if(e.type==='laser') {
-                    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a);
-                    ctx.shadowBlur=20; ctx.shadowColor=e.c;
-                    ctx.fillStyle='white'; ctx.fillRect(0,-5,800,10);
-                    ctx.fillStyle=e.c; ctx.globalAlpha=0.5; ctx.fillRect(0,-15,800,30);
-                    ctx.restore(); ctx.globalAlpha=1; ctx.shadowBlur=0;
-                }
-                if(e.type==='shadow') {
-                    ctx.fillStyle=e.c; ctx.globalAlpha=e.life/20;
-                    ctx.beginPath(); ctx.arc(e.x,e.y,20,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-                }
+                if(e.type==='boom') { ctx.globalAlpha=e.life/15; ctx.fillStyle=e.c; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+                if(e.type==='slash') { ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a); ctx.fillStyle = `rgba(255, 71, 87, ${e.life/15})`; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0, 70, -0.8, 0.8); ctx.fill(); ctx.restore(); }
+                if(e.type==='area' && !e.done) { ctx.strokeStyle=e.c; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.stroke(); ctx.fillStyle=e.c; ctx.globalAlpha=0.2; ctx.fill(); ctx.globalAlpha=1; ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.life/40),0,Math.PI*2); ctx.strokeStyle='white'; ctx.stroke(); }
+                if(e.type==='laser') { ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.a); ctx.shadowBlur=20; ctx.shadowColor=e.c; ctx.fillStyle='white'; ctx.fillRect(0,-5,800,10); ctx.fillStyle=e.c; ctx.globalAlpha=0.5; ctx.fillRect(0,-15,800,30); ctx.restore(); ctx.globalAlpha=1; ctx.shadowBlur=0; }
+                if(e.type==='shadow') { ctx.fillStyle=e.c; ctx.globalAlpha=e.life/20; ctx.beginPath(); ctx.arc(e.x,e.y,20,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
             });
-            texts.forEach(t => { ctx.fillStyle=t.c; ctx.font='bold 12px Arial'; ctx.fillText(t.v, t.x, t.y); });
+            texts.forEach(t => { ctx.fillStyle=t.c; ctx.font=`bold ${t.size}px Arial`; ctx.fillText(t.v, t.x, t.y); });
         }
 
         function loop() { if(gameState==='PLAYING'){update(); draw(); requestAnimationFrame(loop);} }
 
+        // --- 辅助 ---
+        function getTargets(myTeam) { let res=[]; if(myTeam==='blue'){if(!redTower.dead)res.push(redTower);if(!enemy.dead)res.push(enemy);units.forEach(u=>{if(u.team==='red')res.push(u)});}else{if(!blueTower.dead)res.push(blueTower);if(!player.dead)res.push(player);units.forEach(u=>{if(u.team==='blue')res.push(u)});} return res; }
+        function findNearest(me, range) { let min=range, res=null; getTargets(me.team).forEach(t => { let d=Math.hypot(t.x-me.x, t.y-me.y); if(d<min){min=d; res=t;} }); return res; }
+        function checkHit(b) { for(let t of getTargets(b.team)) if(Math.hypot(t.x-b.x, t.y-b.y) < t.r+b.r) return t; return null; }
+        // 伤害区域带 attacker
+        function dealArea(x,y,r,dmg,team,attacker) { getTargets(team).forEach(t => { if(Math.hypot(t.x-x, t.y-y) < r+t.r) t.hit(dmg, attacker); }); }
+
+        // --- 控制 ---
         const jz = document.getElementById('joystick-container');
         const js = document.getElementById('joystick-stick');
         let jStart={x:0,y:0};
@@ -461,13 +550,17 @@
 
         window.handleSkill = function(e, k) {
             e.preventDefault(); if(player.dead) return;
+            
             if(k==='AA') {
                 if(player.cds.AA>0) return;
                 let t = findNearest(player, 250);
                 let ang = t ? Math.atan2(t.y-player.y, t.x-player.x) : player.face;
                 let pType = player.type==='shooter'?'arrow':'orb';
-                bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*10, vy:Math.sin(ang)*10, dmg:40, team:'blue', life:15, r:5, c:'white', style:pType});
-                player.cds.AA=30; return;
+                // 普攻伤害使用 stats.ad
+                bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*10, vy:Math.sin(ang)*10, dmg:player.stats.ad, team:'blue', life:15, r:5, c:'white', style:pType, attacker: player});
+                // 冷却基于 stats.as (基础30帧)
+                player.cds.AA = 30 / player.stats.as;
+                return;
             }
             if(player.cds[k]>0) return;
             let t = findNearest(player, 400);
@@ -475,29 +568,27 @@
             let ty = t ? t.y : player.y+Math.sin(player.face)*150;
             let a = Math.atan2(ty-player.y, tx-player.x);
 
+            // 技能伤害加成 (AD加成)
+            let ad = player.stats.ad;
+
             if(player.type === 'mage') {
-                if(k==='Q') bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*8, vy:Math.sin(a)*8, dmg:120, team:'blue', life:60, r:12, c:'#00eaff', style:'fireball'});
+                if(k==='Q') bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*8, vy:Math.sin(a)*8, dmg:ad*2.0, team:'blue', life:60, r:12, c:'#00eaff', style:'fireball', attacker:player});
                 if(k==='W') { effects.push({type:'shadow', x:player.x, y:player.y, c:'#00eaff', life:20}); player.x += Math.cos(a)*120; player.y += Math.sin(a)*120; effects.push({type:'boom', x:player.x, y:player.y, r:30, c:'#00eaff', life:10}); }
-                if(k==='E') effects.push({type:'area', x:tx, y:ty, r:80, c:'#00eaff', dmg:150, team:'blue', life:60});
-                if(k==='R') effects.push({type:'laser', x:player.x, y:player.y, a:a, c:'#a300ff', team:'blue', dmg:500, life:20});
+                if(k==='E') effects.push({type:'area', x:tx, y:ty, r:80, c:'#00eaff', dmg:ad*2.5, team:'blue', life:60, attacker:player});
+                if(k==='R') effects.push({type:'laser', x:player.x, y:player.y, a:a, c:'#a300ff', team:'blue', dmg:ad*6.0, life:20, attacker:player});
             } else if(player.type === 'shooter') {
-                if(k==='Q') for(let i=-1; i<=1; i++) { let ang = a + i*0.3; bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*12, vy:Math.sin(ang)*12, dmg:60, team:'blue', life:30, r:4, c:'#7bed9f', style:'plasma'}); }
+                if(k==='Q') for(let i=-1; i<=1; i++) { let ang = a + i*0.3; bullets.push({x:player.x, y:player.y, vx:Math.cos(ang)*12, vy:Math.sin(ang)*12, dmg:ad*0.8, team:'blue', life:30, r:4, c:'#7bed9f', style:'plasma', attacker:player}); }
                 if(k==='W') { player.x += Math.cos(a)*100; player.y += Math.sin(a)*100; player.buffs.push({type:'speed', timer:60}); }
-                if(k==='E') effects.push({type:'area', x:tx, y:ty, r:60, c:'orange', dmg:180, team:'blue', life:40});
-                if(k==='R') bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*25, vy:Math.sin(a)*25, dmg:400, team:'blue', life:60, r:6, c:'red', style:'plasma'});
+                if(k==='E') effects.push({type:'area', x:tx, y:ty, r:60, c:'orange', dmg:ad*2.0, team:'blue', life:40, attacker:player});
+                if(k==='R') bullets.push({x:player.x, y:player.y, vx:Math.cos(a)*25, vy:Math.sin(a)*25, dmg:ad*5.0, team:'blue', life:60, r:6, c:'red', style:'plasma', attacker:player});
             } else if(player.type === 'warrior') {
-                if(k==='Q') { effects.push({type:'slash', x:player.x, y:player.y, a:a, c:'#ff4757', life:15}); dealArea(player.x+Math.cos(a)*50, player.y+Math.sin(a)*50, 80, 100, 'blue'); }
-                if(k==='W') { let d=0, did=setInterval(()=>{ player.x+=Math.cos(a)*15; player.y+=Math.sin(a)*15; dealArea(player.x,player.y,30,20,'blue'); d++; if(d>10)clearInterval(did);},16); }
+                if(k==='Q') { effects.push({type:'slash', x:player.x, y:player.y, a:a, c:'#ff4757', life:15}); dealArea(player.x+Math.cos(a)*50, player.y+Math.sin(a)*50, 80, ad*1.5, 'blue', player); }
+                if(k==='W') { let d=0, did=setInterval(()=>{ player.x+=Math.cos(a)*15; player.y+=Math.sin(a)*15; dealArea(player.x,player.y,30,ad*0.5,'blue',player); d++; if(d>10)clearInterval(did);},16); }
                 if(k==='E') player.buffs.push({type:'spin', timer:180});
-                if(k==='R') { player.x=tx; player.y=ty; effects.push({type:'area', x:tx, y:ty, r:120, c:'#ff4757', dmg:300, team:'blue', life:1}); }
+                if(k==='R') { player.x=tx; player.y=ty; effects.push({type:'area', x:tx, y:ty, r:120, c:'#ff4757', dmg:ad*4.0, team:'blue', life:1, attacker:player}); }
             }
             player.cds[k] = player.cfg.cd[k];
         };
-
-        function getTargets(myTeam) { let res=[]; if(myTeam==='blue'){if(!redTower.dead)res.push(redTower);if(!enemy.dead)res.push(enemy);units.forEach(u=>{if(u.team==='red')res.push(u)});}else{if(!blueTower.dead)res.push(blueTower);if(!player.dead)res.push(player);units.forEach(u=>{if(u.team==='blue')res.push(u)});} return res; }
-        function findNearest(me, range) { let min=range, res=null; getTargets(me.team).forEach(t => { let d=Math.hypot(t.x-me.x, t.y-me.y); if(d<min){min=d; res=t;} }); return res; }
-        function checkHit(b) { for(let t of getTargets(b.team)) if(Math.hypot(t.x-b.x, t.y-b.y) < t.r+b.r) return t; return null; }
-        function dealArea(x,y,r,dmg,team) { getTargets(team).forEach(t => { if(Math.hypot(t.x-x, t.y-y) < r+t.r) t.hit(dmg); }); }
 
         window.startGame = function(t) { initGame(t); }
     </script>
