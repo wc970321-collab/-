@@ -3,341 +3,613 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中国人口结构演变与预测模拟</title>
-    <!-- 引入 ECharts -->
+    <title>中国人口结构深度推演系统 (Pro版)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
+        :root {
+            --male-color: #5b8ff9;
+            --female-color: #e8684a;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+        }
         body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f0f2f5;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
             margin: 0;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
+            background-color: var(--bg-color);
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* 头部与控制区 */
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        h1 { margin: 0 0 10px 0; color: #1f1f1f; }
+        .subtitle { color: #666; font-size: 0.95em; }
+
+        .control-panel {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
             align-items: center;
         }
 
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 1000px;
+        .control-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1f1f1f;
+        }
+        .control-group .desc {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 4px;
         }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
+        /* 滑块样式 */
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            height: 6px;
+            background: #e1e1e1;
+            border-radius: 3px;
+            appearance: none;
         }
-
-        .subtitle {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 30px;
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #1890ff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
         }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-        .controls {
-            margin: 30px 0;
-            text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .year-display {
-            font-size: 2.5em;
+        .value-display {
+            font-size: 1.8em;
             font-weight: bold;
             color: #1890ff;
-            display: block;
-            margin-bottom: 10px;
+            font-family: monospace;
         }
 
-        .pop-stats {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-top: 15px;
-            font-size: 1.1em;
+        /* 核心指标卡片 */
+        .kpi-dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
         }
-
-        .stat-item span {
-            font-weight: bold;
-            color: #333;
-        }
-
-        input[type=range] {
-            width: 80%;
-            height: 8px;
-            background: #d3d3d3;
-            outline: none;
-            opacity: 0.7;
-            border-radius: 5px;
-            -webkit-transition: .2s;
-            transition: opacity .2s;
-            margin-top: 10px;
-        }
-
-        input[type=range]:hover {
-            opacity: 1;
-        }
-
-        #chart-container {
-            width: 100%;
-            height: 500px;
-        }
-        
-        .note {
-            margin-top: 20px;
-            font-size: 0.8em;
-            color: #999;
+        .kpi-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
             text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .kpi-val { font-size: 1.4em; font-weight: bold; color: #333; margin: 5px 0; }
+        .kpi-label { font-size: 0.85em; color: #666; }
+        .kpi-note { font-size: 0.75em; color: #999; }
+        
+        .alert-high { color: #cf1322; }
+        .alert-mid { color: #d46b08; }
+        .alert-safe { color: #389e0d; }
+
+        /* 主图表区 */
+        .main-chart-wrapper {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            height: 550px;
+        }
+        #mainPyramid { width: 100%; height: 100%; }
+
+        /* 行业趋势小图表 */
+        .trend-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .trend-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .trend-title { font-weight: bold; font-size: 0.9em; margin-bottom: 10px; text-align: center; }
+        .mini-chart { width: 100%; height: 200px; }
+
+        /* 个人命运板块 */
+        .personal-insight {
+            background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%);
+            border: 1px solid #91d5ff;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+        .input-group input {
+            padding: 8px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .insight-text {
+            flex-grow: 1;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #0050b3;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .control-panel, .kpi-dashboard, .trend-section, .personal-insight {
+                grid-template-columns: 1fr;
+                display: grid; /* override flex */
+            }
+            .personal-insight { display: block; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>中国人口结构演变模拟器</h1>
-    <p class="subtitle">基于1949-2023历史出生数据及简易生存率模型</p>
+    <header>
+        <h1>中国人口结构深度推演系统 (Pro)</h1>
+        <div class="subtitle">集成 TFR 调节、性别差异与行业需求预测模型</div>
+    </header>
 
-    <div class="controls">
-        <div class="year-display">年份: <span id="currentYear">2024</span></div>
-        <input type="range" id="yearSlider" min="1950" max="2100" value="2024" step="1">
-        
-        <div class="pop-stats">
-            <div class="stat-item">总人口预测: <span id="totalPop">0</span> 亿</div>
-            <div class="stat-item">中位数年龄: <span id="medianAge">0</span> 岁</div>
-            <div class="stat-item">60岁以上占比: <span id="elderlyRate">0</span>%</div>
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <div class="control-group">
+            <label>📅 时间推演: <span id="yearVal" class="value-display">2024</span></label>
+            <input type="range" id="yearSlider" min="1980" max="2100" value="2024" step="1">
+            <div class="desc">拖动查看人口结构演变 (1980 - 2100)</div>
+        </div>
+        <div class="control-group">
+            <label>👶 未来总和生育率 (TFR) 假设: <span id="tfrVal" class="value-display">1.0</span></label>
+            <input type="range" id="tfrSlider" min="0.6" max="2.1" value="1.0" step="0.1">
+            <div class="desc">0.7=韩国模式 | 1.0=当前现状 | 2.1=世代更替水平</div>
         </div>
     </div>
 
-    <div id="chart-container"></div>
-    
-    <div class="note">
-        *注：本工具仅为模拟演示。数据基于公开的历史出生概数，生存率采用简化的精算模型，不代表官方普查数据。<br>
-        2024年以后的数据基于“低生育率假设”进行推演。
+    <!-- 核心指标 -->
+    <div class="kpi-dashboard">
+        <div class="kpi-card">
+            <div class="kpi-label">总人口</div>
+            <div class="kpi-val" id="kpi-total">--</div>
+            <div class="kpi-note">亿人</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">抚养比 (劳动力:老人)</div>
+            <div class="kpi-val" id="kpi-support">--</div>
+            <div class="kpi-note" id="kpi-support-note">个年轻人养1个老人</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">中位数年龄</div>
+            <div class="kpi-val" id="kpi-median">--</div>
+            <div class="kpi-note">岁</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">新生儿性别比</div>
+            <div class="kpi-val" id="kpi-sexratio">--</div>
+            <div class="kpi-note">每100女对应的男</div>
+        </div>
     </div>
+
+    <!-- 个人命运映射 -->
+    <div class="personal-insight">
+        <div class="input-group">
+            <label>🎂 输入你的出生年份:</label>
+            <input type="number" id="userBirthYear" value="1990" min="1950" max="2024">
+        </div>
+        <div class="insight-text" id="personalReport">
+            <!-- JS 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 主图表：人口金字塔 -->
+    <div class="main-chart-wrapper">
+        <div id="mainPyramid"></div>
+    </div>
+
+    <!-- 行业趋势 -->
+    <div class="trend-section">
+        <div class="trend-card">
+            <div class="trend-title">👶 幼教/K12需求 (0-14岁)</div>
+            <div id="chart-kids" class="mini-chart"></div>
+        </div>
+        <div class="trend-card">
+            <div class="trend-title">🏠 购房刚需 (25-35岁)</div>
+            <div id="chart-house" class="mini-chart"></div>
+        </div>
+        <div class="trend-card">
+            <div class="trend-title">🏥 深度老龄化/护工 (80岁+)</div>
+            <div id="chart-elder" class="mini-chart"></div>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    // ------------------------------------------
-    // 1. 数据准备 (单位: 万人)
-    // ------------------------------------------
-    // 为了代码简洁，这里手动构建一个近似的历史出生数据表
-    // 数据来源参考了国家统计局历史数据趋势
-    const birthData = {};
-    
-    // 初始化 1949 - 2023 的大致出生人口 (数据为模拟近似值)
-    const historicalBirths = [
-        // 1949-1958
-        1275, 1419, 1349, 1622, 1637, 2235, 1984, 1965, 1976, 1905,
-        // 1959-1961 (三年困难时期)
-        1635, 1381, 1141, 
-        // 1962-1970 (婴儿潮)
-        2451, 2934, 2721, 2679, 2554, 2543, 2731, 2715, 2710,
-        // 1971-1980
-        2551, 2550, 2447, 2463, 2243, 1838, 1765, 1725, 1715, 1776,
-        // 1981-1990 (回声潮)
-        2064, 2211, 2036, 2031, 2177, 2354, 2502, 2507, 2514, 2374,
-        // 1991-2000 (平稳下降)
-        2250, 2113, 2117, 2098, 2052, 2051, 2028, 1934, 1827, 1765,
-        // 2001-2010
-        1696, 1641, 1594, 1588, 1612, 1581, 1591, 1604, 1611, 1588,
-        // 2011-2023
-        1600, 1635, 1640, 1687, 1655, 1786, 1723, 1523, 1465, 1200, 1062, 956, 902
-    ];
+    // --- 1. 数据源与配置 ---
 
-    historicalBirths.forEach((val, index) => {
-        birthData[1949 + index] = val;
-    });
+    // 历史出生数据 (1949-2023, 单位：万)
+    const historicalBirths = {
+        1949:1275,1950:1419,1951:1349,1952:1622,1953:1637,1954:2232,1955:1965,1956:1961,1957:2138,1958:1889,
+        1959:1635,1960:1402,1961:949,1962:2451,1963:2934,1964:2721,1965:2679,1966:2554,1967:2543,1968:2731,
+        1969:2707,1970:2733,1971:2551,1972:2550,1973:2447,1974:2463,1975:2243,1976:2031,1977:1765,1978:1725,
+        1979:1715,1980:1776,1981:2064,1982:2230,1983:2052,1984:2050,1985:2190,1986:2374,1987:2508,1988:2445,
+        1989:2396,1990:2374,1991:2250,1992:2113,1993:2119,1994:2098,1995:2052,1996:2057,1997:2028,1998:1934,
+        1999:1827,2000:1765,2001:1696,2002:1641,2003:1593,2004:1588,2005:1612,2006:1581,2007:1591,2008:1604,
+        2009:1587,2010:1588,2011:1600,2012:1635,2013:1640,2014:1687,2015:1655,2016:1786,2017:1723,2018:1523,
+        2019:1465,2020:1200,2021:1062,2022:956,2023:902
+    };
 
-    // ------------------------------------------
-    // 2. 算法逻辑
-    // ------------------------------------------
-
-    // 获取某一年出生的初始人口
-    function getBirthsByYear(year) {
-        if (year < 1949) {
-            // 1949年以前，假设一个较低的出生水平，逐年递减
-            return Math.max(500, 1300 - (1949 - year) * 20); 
-        }
-        if (birthData[year]) {
-            return birthData[year];
-        }
-        // 未来预测：假设维持在2023年的低位水平并缓慢衰减 (悲观/中性假设)
-        const lastKnown = 902;
-        const yearsPassed = year - 2023;
-        // 假设每年减少 1% 直到 600万保底
-        let projected = lastKnown * Math.pow(0.99, yearsPassed);
-        return Math.max(600, projected);
+    // 出生性别比模拟 (大致历史趋势)
+    // 1980前约1.06, 1980-2015逐渐升高至1.18, 之后缓慢回落
+    function getSexRatioAtBirth(year) {
+        if (year < 1980) return 1.06;
+        if (year <= 2005) return 1.06 + (year - 1980) * 0.005; // 峰值约1.18
+        if (year <= 2020) return 1.18 - (year - 2005) * 0.004;
+        return 1.10; // 长期回归假设
     }
 
-    // 生存率函数 (简化版生命表)
-    // 输入年龄，返回存活比例 (0.0 - 1.0)
-    function getSurvivalRate(age) {
-        if (age < 0) return 0;
-        // 这是一个拟合的S型曲线，模拟现代医疗条件下的生存率
-        // 0-40岁: 存活率很高
-        // 60岁开始: 下降
-        // 80岁以后: 快速下降
-        if (age <= 50) return 0.99 - (age * 0.0005); // 极低死亡率
-        if (age <= 70) return 0.965 - ((age - 50) * 0.005); 
-        if (age <= 80) return 0.865 - ((age - 70) * 0.02);
-        if (age <= 90) return 0.665 - ((age - 80) * 0.05);
-        if (age <= 100) return Math.max(0, 0.165 - ((age - 90) * 0.04)); // 90岁以上存活率极低
+    // --- 2. 核心模型 ---
+
+    // 死亡率模型 (含性别差异)
+    // sex: 'male' or 'female'
+    function getSurvivalRate(age, currentYear, sex) {
+        // 医疗进步因子
+        const baseYear = 2020;
+        const medicalAdvance = Math.max(0, (currentYear - baseYear) * 0.15); // 未来医疗进步
+        let effectiveAge = age - medicalAdvance;
+        
+        // 女性天生寿命优势 (假设生理年龄年轻4岁)
+        if (sex === 'female') effectiveAge -= 4;
+
+        if (effectiveAge < 0) return 1;
+        
+        // 死亡曲线
+        if (effectiveAge <= 60) return 0.995 - (effectiveAge * 0.0003);
+        if (effectiveAge <= 75) return 0.97 - ((effectiveAge - 60) * 0.008);
+        if (effectiveAge <= 85) return 0.85 - ((effectiveAge - 75) * 0.035);
+        if (effectiveAge <= 95) return 0.50 - ((effectiveAge - 85) * 0.04);
+        if (effectiveAge <= 110) return 0.10 - ((effectiveAge - 95) * 0.01);
         return 0;
     }
 
-    // 计算特定年份的人口结构
-    function calculatePopulationStructure(targetYear) {
-        let structure = [];
-        let totalPop = 0;
-        let totalAge = 0;
-        let elderlyCount = 0; // 60岁以上
+    // 获取某年出生人口 (受 TFR 滑块影响)
+    function getProjectedBirths(birthYear, currentTfr) {
+        if (historicalBirths[birthYear]) return historicalBirths[birthYear];
+        
+        // 2024及以后的预测
+        // 基准：2023年数据
+        // 模型：如果TFR=1.0，则缓慢衰减；如果TFR高，则回升
+        // 简化逻辑：下一代人口 = 上一代育龄妇女数 * TFR
+        // 但为了代码简单，我们用衰减系数模拟 TFR 的影响
+        
+        const lastKnown = historicalBirths[2023]; // 902万
+        const yearsPassed = birthYear - 2023;
+        
+        // TFR 1.0 约等于维持现状的微跌 (因为育龄妇女在减少)
+        // TFR 2.1 约等于持平甚至微涨
+        // 我们设定一个"自然衰减率"基于育龄妇女减少，约为 -3%/年
+        const naturalDecline = 0.97; 
+        
+        // TFR 修正系数 (相对于1.0)
+        // tfr=1.0 -> factor=1; tfr=0.7 -> factor=0.98(加速跌); tfr=1.5 -> factor=1.02(回升)
+        const tfrFactor = 1 + (currentTfr - 1.1) * 0.05;
 
-        // 计算 0 到 100 岁的人口
+        const growthRate = naturalDecline * tfrFactor;
+        
+        return Math.max(lastKnown * Math.pow(growthRate, yearsPassed), 300); // 300万保底
+    }
+
+    // 计算特定年份的完整人口结构
+    function calculateDemographics(targetYear, tfr) {
+        let maleData = [];
+        let femaleData = [];
+        let totalPop = 0;
+        let ageSum = 0;
+        
+        // 行业统计
+        let pop0to14 = 0;
+        let pop25to35 = 0;
+        let pop15to64 = 0; // 劳动力
+        let pop60plus = 0; // 退休 (假设60)
+        let pop80plus = 0; // 高龄
+        let newbornMales = 0;
+        let newbornFemales = 0;
+
+        let allAges = []; // 用于中位数
+
         for (let age = 0; age <= 100; age++) {
             let birthYear = targetYear - age;
-            let initialBirths = getBirthsByYear(birthYear);
+            let totalBirths = getProjectedBirths(birthYear, tfr);
             
-            // 考虑到1949年前医疗条件差，给老龄人口加一个额外的衰减系数
-            let historicalFactor = 1;
-            if (birthYear < 1960) historicalFactor = 0.9; 
-            if (birthYear < 1940) historicalFactor = 0.7;
+            let sexRatio = getSexRatioAtBirth(birthYear); 
+            // 男 = 总数 * (SR / (1+SR))
+            let mBirths = totalBirths * (sexRatio / (1 + sexRatio));
+            let fBirths = totalBirths - mBirths;
 
-            let survivalRate = getSurvivalRate(age) * historicalFactor;
-            let currentPop = Math.floor(initialBirths * survivalRate);
+            // 存活计算
+            let mPop = Math.floor(mBirths * getSurvivalRate(age, targetYear, 'male'));
+            let fPop = Math.floor(fBirths * getSurvivalRate(age, targetYear, 'female'));
+            let agePop = mPop + fPop;
 
-            structure.push({
-                age: age,
-                count: currentPop // 单位：万人
-            });
-
-            totalPop += currentPop;
-            totalAge += (currentPop * age);
+            maleData.push(-mPop); // 负数用于左侧显示
+            femaleData.push(fPop);
+            totalPop += agePop;
             
-            if (age >= 60) {
-                elderlyCount += currentPop;
+            // 统计分组
+            if (age <= 14) pop0to14 += agePop;
+            if (age >= 25 && age <= 35) pop25to35 += agePop;
+            if (age >= 15 && age <= 64) pop15to64 += agePop; // 假设劳动力
+            if (age >= 60) pop60plus += agePop;
+            if (age >= 80) pop80plus += agePop;
+            
+            if (age === 0) {
+                newbornMales = mPop;
+                newbornFemales = fPop;
             }
+
+            // 中位数辅助
+            allAges.push({age: age, count: agePop});
         }
-        
-        // 计算中位数年龄 (粗略估算)
-        let countSum = 0;
+
+        // 计算中位数
+        let midCount = totalPop / 2;
+        let curr = 0;
         let medianAge = 0;
-        for (let i = 0; i < structure.length; i++) {
-            countSum += structure[i].count;
-            if (countSum >= totalPop / 2) {
-                medianAge = structure[i].age;
+        for (let item of allAges) {
+            curr += item.count;
+            if (curr >= midCount) {
+                medianAge = item.age;
                 break;
             }
         }
 
         return {
             year: targetYear,
-            data: structure,
-            total: totalPop,
-            medianAge: medianAge,
-            elderlyRate: (elderlyCount / totalPop * 100).toFixed(1)
+            maleArr: maleData,
+            femaleArr: femaleData,
+            total: (totalPop / 10000).toFixed(2),
+            median: medianAge,
+            supportRatio: pop60plus > 0 ? (pop15to64 / pop60plus).toFixed(2) : '∞',
+            sexRatioBirth: newbornFemales > 0 ? (newbornMales/newbornFemales*100).toFixed(1) : 0,
+            
+            // 细分数据 (万)
+            valKids: Math.round(pop0to14),
+            valHouse: Math.round(pop25to35),
+            valElder: Math.round(pop80plus)
         };
     }
 
-    // ------------------------------------------
-    // 3. 渲染图表
-    // ------------------------------------------
-    const chartDom = document.getElementById('chart-container');
-    const myChart = echarts.init(chartDom);
-    const slider = document.getElementById('yearSlider');
-    const currentYearSpan = document.getElementById('currentYear');
-    const totalPopSpan = document.getElementById('totalPop');
-    const medianAgeSpan = document.getElementById('medianAge');
-    const elderlyRateSpan = document.getElementById('elderlyRate');
+    // --- 3. 图表初始化 ---
+    
+    const chartMain = echarts.init(document.getElementById('mainPyramid'));
+    const chartKids = echarts.init(document.getElementById('chart-kids'));
+    const chartHouse = echarts.init(document.getElementById('chart-house'));
+    const chartElder = echarts.init(document.getElementById('chart-elder'));
 
-    function updateView(year) {
-        const result = calculatePopulationStructure(year);
+    // 预计算趋势数据 (用于小图表)
+    function generateTrendSeries(tfr) {
+        let years = [];
+        let dataKids = [];
+        let dataHouse = [];
+        let dataElder = [];
         
-        // 更新文字数据
-        currentYearSpan.innerText = year;
-        totalPopSpan.innerText = (result.total / 10000).toFixed(2); // 转为亿
-        medianAgeSpan.innerText = result.medianAge;
-        elderlyRateSpan.innerText = result.elderlyRate;
+        for (let y = 1980; y <= 2100; y++) {
+            let d = calculateDemographics(y, tfr);
+            years.push(y);
+            dataKids.push(d.valKids);
+            dataHouse.push(d.valHouse);
+            dataElder.push(d.valElder);
+        }
+        return { years, dataKids, dataHouse, dataElder };
+    }
 
-        // 准备图表数据
-        const ageAxis = result.data.map(item => item.age);
-        const countAxis = result.data.map(item => item.count);
-
-        // 配色逻辑：将60岁以上标红
-        const colors = result.data.map(item => {
-            return item.age >= 60 ? '#ff7875' : '#4096ff';
-        });
-
+    // 更新主图 (金字塔)
+    function updateMainChart(data) {
         const option = {
-            title: {
-                text: `${year}年 人口年龄分布图`,
-                left: 'center'
-            },
             tooltip: {
                 trigger: 'axis',
+                axisPointer: { type: 'shadow' },
                 formatter: function (params) {
-                    const data = params[0];
-                    return `年龄: ${data.name} 岁<br/>人口: ${(data.value / 100).toFixed(2)} 百万`;
+                    let age = params[0].name;
+                    let mVal = Math.abs(params[0].value);
+                    let fVal = params[1].value;
+                    return `<strong>${age} 岁</strong> (出生: ${data.year - age})<br/>
+                            <span style="color:var(--male-color)">♂ 男: ${mVal} 万</span><br/>
+                            <span style="color:var(--female-color)">♀ 女: ${fVal} 万</span><br/>
+                            总计: ${mVal + fVal} 万`;
                 }
             },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-                data: ageAxis,
-                name: '年龄',
-                nameLocation: 'middle',
-                nameGap: 25,
-                axisLabel: { interval: 9 } // 每10年显示一个刻度
-            },
-            yAxis: {
-                type: 'value',
-                name: '人口数 (万人)',
-                max: 3000 // 固定Y轴最大值以便观察变化
-            },
+            legend: { data: ['男性', '女性'], bottom: 0 },
+            grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+            xAxis: [
+                {
+                    type: 'value',
+                    name: '人口 (万)',
+                    min: -1500, max: 1500, // 固定坐标轴以便观察变化
+                    axisLabel: { formatter: (v) => Math.abs(v) }
+                }
+            ],
+            yAxis: [
+                { type: 'category', axisTick: { show: false }, data: Array.from({length:101},(_,i)=>i), name: '年龄' }
+            ],
             series: [
                 {
-                    data: countAxis,
+                    name: '男性',
                     type: 'bar',
-                    itemStyle: {
-                        color: function(params) {
-                            return params.dataIndex >= 60 ? '#ff9c6e' : '#69b1ff';
-                        }
-                    },
-                    animationDuration: 100 // 减少动画时间以获得流畅的拖拽体验
+                    stack: 'Total',
+                    data: data.maleArr,
+                    itemStyle: { color: '#5b8ff9', borderRadius: [4,0,0,4] }
+                },
+                {
+                    name: '女性',
+                    type: 'bar',
+                    stack: 'Total',
+                    data: data.femaleArr,
+                    itemStyle: { color: '#e8684a', borderRadius: [0,4,4,0] }
                 }
-            ]
+            ],
+            animationDuration: 200
         };
-
-        myChart.setOption(option);
+        chartMain.setOption(option);
     }
 
-    // ------------------------------------------
-    // 4. 事件绑定
-    // ------------------------------------------
-    
-    // 初始化
-    updateView(parseInt(slider.value));
+    // 更新小图表 (带高亮当前年份)
+    function updateTrendCharts(trendData, currentYear) {
+        const commonOption = (title, data, color) => ({
+            title: { show: false },
+            tooltip: { trigger: 'axis' },
+            grid: { top: 10, bottom: 20, left: 40, right: 10 },
+            xAxis: { type: 'category', data: trendData.years, show: false },
+            yAxis: { type: 'value', splitLine: {show: false} },
+            series: [{
+                type: 'line',
+                data: data,
+                showSymbol: false,
+                lineStyle: { color: color, width: 2 },
+                areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:color},{offset:1,color:'#fff'}], false), opacity: 0.3 },
+                markLine: {
+                    symbol: 'none',
+                    label: { show: false },
+                    data: [{ xAxis: currentYear - 1980, lineStyle: { type: 'dashed', color: '#333' } }]
+                }
+            }]
+        });
 
-    // 监听滑块
-    slider.addEventListener('input', function() {
-        updateView(parseInt(this.value));
+        chartKids.setOption(commonOption('幼教', trendData.dataKids, '#52c41a'));
+        chartHouse.setOption(commonOption('房产', trendData.dataHouse, '#1890ff'));
+        chartElder.setOption(commonOption('养老', trendData.dataElder, '#faad14'));
+    }
+
+    // 个人命运计算器
+    function updatePersonalInsight(birthYear, currentYear, currentTfr) {
+        const age = currentYear - birthYear;
+        const retireYear = parseInt(birthYear) + 60;
+        const retireData = calculateDemographics(retireYear, currentTfr);
+        
+        // 你的同龄人数量 (出生那年)
+        const myBirths = historicalBirths[birthYear] || getProjectedBirths(birthYear, currentTfr);
+        
+        let html = `<strong>当前状态 (${currentYear}):</strong> 你今年 <b>${age}</b> 岁。<br>`;
+        
+        if (age < 0) {
+            html += `你在 ${-age} 年后才会出生。`;
+        } else if (age > 100) {
+            html += `那是很久远的未来了...`;
+        } else {
+            // 退休预测
+            html += `<strong>退休预测 (${retireYear}年):</strong> <br>`;
+            html += `当你60岁退休时，社会抚养比约为 <b>${retireData.supportRatio}</b> (即${retireData.supportRatio}个年轻人养1个老人)。<br>`;
+            
+            if (retireData.supportRatio < 2) {
+                html += `<span style="color:red">⚠️ 警告：养老金压力极大，建议提前储备资产。</span><br>`;
+            }
+            
+            // 同龄人竞争
+            html += `你的同龄人(出生)约 <b>${myBirths}</b> 万人。`;
+            if (birthYear >= 1962 && birthYear <= 1975) html += ` (婴儿潮一代，人多拥挤)`;
+            if (birthYear >= 1990 && birthYear <= 2000) html += ` (竞争最激烈的一代)`;
+            if (birthYear >= 2020) html += ` (稀缺的一代，但抚养压力大)`;
+        }
+        
+        document.getElementById('personalReport').innerHTML = html;
+    }
+
+    // --- 4. 交互逻辑 ---
+
+    const sliderYear = document.getElementById('yearSlider');
+    const sliderTfr = document.getElementById('tfrSlider');
+    const inputBirth = document.getElementById('userBirthYear');
+    
+    const uiYear = document.getElementById('yearVal');
+    const uiTfr = document.getElementById('tfrVal');
+    
+    // KPI DOM
+    const kpiTotal = document.getElementById('kpi-total');
+    const kpiSupport = document.getElementById('kpi-support');
+    const kpiMedian = document.getElementById('kpi-median');
+    const kpiSex = document.getElementById('kpi-sexratio');
+
+    let cachedTrendData = null; // 缓存趋势数据避免重复计算
+
+    function renderAll() {
+        const y = parseInt(sliderYear.value);
+        const tfr = parseFloat(sliderTfr.value);
+        
+        uiYear.textContent = y;
+        uiTfr.textContent = tfr.toFixed(1);
+
+        // 1. 计算当前数据
+        const data = calculateDemographics(y, tfr);
+        
+        // 2. 更新 KPI
+        kpiTotal.textContent = data.total;
+        
+        kpiSupport.textContent = data.supportRatio;
+        kpiSupport.className = 'kpi-val ' + (data.supportRatio < 2 ? 'alert-high' : (data.supportRatio < 3 ? 'alert-mid' : 'alert-safe'));
+        
+        kpiMedian.textContent = data.median;
+        kpiSex.textContent = data.sexRatioBirth;
+
+        // 3. 更新主图
+        updateMainChart(data);
+
+        // 4. 更新趋势图 (仅当TFR改变时重新计算全量趋势，否则只移动标线)
+        // 为了简单，这里每次都刷新标线
+        if (!cachedTrendData || sliderTfr.dataset.lastVal != tfr) {
+            cachedTrendData = generateTrendSeries(tfr);
+            sliderTfr.dataset.lastVal = tfr;
+            // 只有TFR变了才全量重绘series
+            updateTrendCharts(cachedTrendData, y);
+        } else {
+            // 优化：如果只动了年份，可以用 setOption 只更新 markLine，这里简单起见还是全调
+            updateTrendCharts(cachedTrendData, y);
+        }
+
+        // 5. 更新个人报告
+        updatePersonalInsight(inputBirth.value, y, tfr);
+    }
+
+    // 监听器
+    sliderYear.addEventListener('input', renderAll);
+    sliderTfr.addEventListener('input', renderAll);
+    inputBirth.addEventListener('input', renderAll);
+    window.addEventListener('resize', () => {
+        chartMain.resize();
+        chartKids.resize();
+        chartHouse.resize();
+        chartElder.resize();
     });
 
-    // 响应式调整
-    window.addEventListener('resize', myChart.resize);
+    // 初始化
+    renderAll();
 
 </script>
-
 </body>
-
 </html>
