@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国人口结构演变与预测模拟</title>
+    <!-- 引入 ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 1000px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            margin: 30px 0;
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .year-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #1890ff;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .pop-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 15px;
+            font-size: 1.1em;
+        }
+
+        .stat-item span {
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type=range] {
+            width: 80%;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            border-radius: 5px;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+            margin-top: 10px;
+        }
+
+        input[type=range]:hover {
+            opacity: 1;
+        }
+
+        #chart-container {
+            width: 100%;
+            height: 500px;
+        }
+        
+        .note {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #999;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>中国人口结构演变模拟器</h1>
+    <p class="subtitle">基于1949-2023历史出生数据及简易生存率模型</p>
+
+    <div class="controls">
+        <div class="year-display">年份: <span id="currentYear">2024</span></div>
+        <input type="range" id="yearSlider" min="1950" max="2100" value="2024" step="1">
+        
+        <div class="pop-stats">
+            <div class="stat-item">总人口预测: <span id="totalPop">0</span> 亿</div>
+            <div class="stat-item">中位数年龄: <span id="medianAge">0</span> 岁</div>
+            <div class="stat-item">60岁以上占比: <span id="elderlyRate">0</span>%</div>
+        </div>
+    </div>
+
+    <div id="chart-container"></div>
+    
+    <div class="note">
+        *注：本工具仅为模拟演示。数据基于公开的历史出生概数，生存率采用简化的精算模型，不代表官方普查数据。<br>
+        2024年以后的数据基于“低生育率假设”进行推演。
+    </div>
+</div>
+
+<script>
+    // ------------------------------------------
+    // 1. 数据准备 (单位: 万人)
+    // ------------------------------------------
+    // 为了代码简洁，这里手动构建一个近似的历史出生数据表
+    // 数据来源参考了国家统计局历史数据趋势
+    const birthData = {};
+    
+    // 初始化 1949 - 2023 的大致出生人口 (数据为模拟近似值)
+    const historicalBirths = [
+        // 1949-1958
+        1275, 1419, 1349, 1622, 1637, 2235, 1984, 1965, 1976, 1905,
+        // 1959-1961 (三年困难时期)
+        1635, 1381, 1141, 
+        // 1962-1970 (婴儿潮)
+        2451, 2934, 2721, 2679, 2554, 2543, 2731, 2715, 2710,
+        // 1971-1980
+        2551, 2550, 2447, 2463, 2243, 1838, 1765, 1725, 1715, 1776,
+        // 1981-1990 (回声潮)
+        2064, 2211, 2036, 2031, 2177, 2354, 2502, 2507, 2514, 2374,
+        // 1991-2000 (平稳下降)
+        2250, 2113, 2117, 2098, 2052, 2051, 2028, 1934, 1827, 1765,
+        // 2001-2010
+        1696, 1641, 1594, 1588, 1612, 1581, 1591, 1604, 1611, 1588,
+        // 2011-2023
+        1600, 1635, 1640, 1687, 1655, 1786, 1723, 1523, 1465, 1200, 1062, 956, 902
+    ];
+
+    historicalBirths.forEach((val, index) => {
+        birthData[1949 + index] = val;
+    });
+
+    // ------------------------------------------
+    // 2. 算法逻辑
+    // ------------------------------------------
+
+    // 获取某一年出生的初始人口
+    function getBirthsByYear(year) {
+        if (year < 1949) {
+            // 1949年以前，假设一个较低的出生水平，逐年递减
+            return Math.max(500, 1300 - (1949 - year) * 20); 
+        }
+        if (birthData[year]) {
+            return birthData[year];
+        }
+        // 未来预测：假设维持在2023年的低位水平并缓慢衰减 (悲观/中性假设)
+        const lastKnown = 902;
+        const yearsPassed = year - 2023;
+        // 假设每年减少 1% 直到 600万保底
+        let projected = lastKnown * Math.pow(0.99, yearsPassed);
+        return Math.max(600, projected);
+    }
+
+    // 生存率函数 (简化版生命表)
+    // 输入年龄，返回存活比例 (0.0 - 1.0)
+    function getSurvivalRate(age) {
+        if (age < 0) return 0;
+        // 这是一个拟合的S型曲线，模拟现代医疗条件下的生存率
+        // 0-40岁: 存活率很高
+        // 60岁开始: 下降
+        // 80岁以后: 快速下降
+        if (age <= 50) return 0.99 - (age * 0.0005); // 极低死亡率
+        if (age <= 70) return 0.965 - ((age - 50) * 0.005); 
+        if (age <= 80) return 0.865 - ((age - 70) * 0.02);
+        if (age <= 90) return 0.665 - ((age - 80) * 0.05);
+        if (age <= 100) return Math.max(0, 0.165 - ((age - 90) * 0.04)); // 90岁以上存活率极低
+        return 0;
+    }
+
+    // 计算特定年份的人口结构
+    function calculatePopulationStructure(targetYear) {
+        let structure = [];
+        let totalPop = 0;
+        let totalAge = 0;
+        let elderlyCount = 0; // 60岁以上
+
+        // 计算 0 到 100 岁的人口
+        for (let age = 0; age <= 100; age++) {
+            let birthYear = targetYear - age;
+            let initialBirths = getBirthsByYear(birthYear);
+            
+            // 考虑到1949年前医疗条件差，给老龄人口加一个额外的衰减系数
+            let historicalFactor = 1;
+            if (birthYear < 1960) historicalFactor = 0.9; 
+            if (birthYear < 1940) historicalFactor = 0.7;
+
+            let survivalRate = getSurvivalRate(age) * historicalFactor;
+            let currentPop = Math.floor(initialBirths * survivalRate);
+
+            structure.push({
+                age: age,
+                count: currentPop // 单位：万人
+            });
+
+            totalPop += currentPop;
+            totalAge += (currentPop * age);
+            
+            if (age >= 60) {
+                elderlyCount += currentPop;
+            }
+        }
+        
+        // 计算中位数年龄 (粗略估算)
+        let countSum = 0;
+        let medianAge = 0;
+        for (let i = 0; i < structure.length; i++) {
+            countSum += structure[i].count;
+            if (countSum >= totalPop / 2) {
+                medianAge = structure[i].age;
+                break;
+            }
+        }
+
+        return {
+            year: targetYear,
+            data: structure,
+            total: totalPop,
+            medianAge: medianAge,
+            elderlyRate: (elderlyCount / totalPop * 100).toFixed(1)
+        };
+    }
+
+    // ------------------------------------------
+    // 3. 渲染图表
+    // ------------------------------------------
+    const chartDom = document.getElementById('chart-container');
+    const myChart = echarts.init(chartDom);
+    const slider = document.getElementById('yearSlider');
+    const currentYearSpan = document.getElementById('currentYear');
+    const totalPopSpan = document.getElementById('totalPop');
+    const medianAgeSpan = document.getElementById('medianAge');
+    const elderlyRateSpan = document.getElementById('elderlyRate');
+
+    function updateView(year) {
+        const result = calculatePopulationStructure(year);
+        
+        // 更新文字数据
+        currentYearSpan.innerText = year;
+        totalPopSpan.innerText = (result.total / 10000).toFixed(2); // 转为亿
+        medianAgeSpan.innerText = result.medianAge;
+        elderlyRateSpan.innerText = result.elderlyRate;
+
+        // 准备图表数据
+        const ageAxis = result.data.map(item => item.age);
+        const countAxis = result.data.map(item => item.count);
+
+        // 配色逻辑：将60岁以上标红
+        const colors = result.data.map(item => {
+            return item.age >= 60 ? '#ff7875' : '#4096ff';
+        });
+
+        const option = {
+            title: {
+                text: `${year}年 人口年龄分布图`,
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    const data = params[0];
+                    return `年龄: ${data.name} 岁<br/>人口: ${(data.value / 100).toFixed(2)} 百万`;
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: ageAxis,
+                name: '年龄',
+                nameLocation: 'middle',
+                nameGap: 25,
+                axisLabel: { interval: 9 } // 每10年显示一个刻度
+            },
+            yAxis: {
+                type: 'value',
+                name: '人口数 (万人)',
+                max: 3000 // 固定Y轴最大值以便观察变化
+            },
+            series: [
+                {
+                    data: countAxis,
+                    type: 'bar',
+                    itemStyle: {
+                        color: function(params) {
+                            return params.dataIndex >= 60 ? '#ff9c6e' : '#69b1ff';
+                        }
+                    },
+                    animationDuration: 100 // 减少动画时间以获得流畅的拖拽体验
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+    }
+
+    // ------------------------------------------
+    // 4. 事件绑定
+    // ------------------------------------------
+    
+    // 初始化
+    updateView(parseInt(slider.value));
+
+    // 监听滑块
+    slider.addEventListener('input', function() {
+        updateView(parseInt(this.value));
+    });
+
+    // 响应式调整
+    window.addEventListener('resize', myChart.resize);
+
+</script>
+
+</body>
+</html>
