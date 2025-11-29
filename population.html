@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中国人口结构深度推演系统 (Pro版)</title>
+    <title>中国人口结构深度推演系统 (修复版)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         :root {
@@ -175,7 +175,7 @@
 
 <div class="container">
     <header>
-        <h1>中国人口结构深度推演系统 (Pro)</h1>
+        <h1>中国人口结构深度推演系统 (修复版)</h1>
         <div class="subtitle">集成 TFR 调节、性别差异与行业需求预测模型</div>
     </header>
 
@@ -267,7 +267,6 @@
     };
 
     // 出生性别比模拟 (大致历史趋势)
-    // 1980前约1.06, 1980-2015逐渐升高至1.18, 之后缓慢回落
     function getSexRatioAtBirth(year) {
         if (year < 1980) return 1.06;
         if (year <= 2005) return 1.06 + (year - 1980) * 0.005; // 峰值约1.18
@@ -278,7 +277,6 @@
     // --- 2. 核心模型 ---
 
     // 死亡率模型 (含性别差异)
-    // sex: 'male' or 'female'
     function getSurvivalRate(age, currentYear, sex) {
         // 医疗进步因子
         const baseYear = 2020;
@@ -299,28 +297,23 @@
         return 0;
     }
 
-    // 获取某年出生人口 (受 TFR 滑块影响)
+    // 获取某年出生人口 (修复版：解决了1949年前数据溢出的Bug)
     function getProjectedBirths(birthYear, currentTfr) {
+        // 1. 历史数据中存在
         if (historicalBirths[birthYear]) return historicalBirths[birthYear];
         
-        // 2024及以后的预测
-        // 基准：2023年数据
-        // 模型：如果TFR=1.0，则缓慢衰减；如果TFR高，则回升
-        // 简化逻辑：下一代人口 = 上一代育龄妇女数 * TFR
-        // 但为了代码简单，我们用衰减系数模拟 TFR 的影响
-        
+        // 2. 历史数据之前 (修复点：民国时期及更早)
+        // 简单设定为1300万左右的水平，避免负年份计算导致指数爆炸
+        if (birthYear < 1949) return 1300; 
+
+        // 3. 未来数据预测 (2024及以后)
         const lastKnown = historicalBirths[2023]; // 902万
         const yearsPassed = birthYear - 2023;
         
-        // TFR 1.0 约等于维持现状的微跌 (因为育龄妇女在减少)
-        // TFR 2.1 约等于持平甚至微涨
-        // 我们设定一个"自然衰减率"基于育龄妇女减少，约为 -3%/年
+        // 自然衰减率
         const naturalDecline = 0.97; 
-        
-        // TFR 修正系数 (相对于1.0)
-        // tfr=1.0 -> factor=1; tfr=0.7 -> factor=0.98(加速跌); tfr=1.5 -> factor=1.02(回升)
+        // TFR 修正系数
         const tfrFactor = 1 + (currentTfr - 1.1) * 0.05;
-
         const growthRate = naturalDecline * tfrFactor;
         
         return Math.max(lastKnown * Math.pow(growthRate, yearsPassed), 300); // 300万保底
@@ -331,7 +324,6 @@
         let maleData = [];
         let femaleData = [];
         let totalPop = 0;
-        let ageSum = 0;
         
         // 行业统计
         let pop0to14 = 0;
@@ -365,7 +357,7 @@
             // 统计分组
             if (age <= 14) pop0to14 += agePop;
             if (age >= 25 && age <= 35) pop25to35 += agePop;
-            if (age >= 15 && age <= 64) pop15to64 += agePop; // 假设劳动力
+            if (age >= 15 && age <= 64) pop15to64 += agePop; 
             if (age >= 60) pop60plus += agePop;
             if (age >= 80) pop80plus += agePop;
             
@@ -413,7 +405,7 @@
     const chartHouse = echarts.init(document.getElementById('chart-house'));
     const chartElder = echarts.init(document.getElementById('chart-elder'));
 
-    // 预计算趋势数据 (用于小图表)
+    // 预计算趋势数据
     function generateTrendSeries(tfr) {
         let years = [];
         let dataKids = [];
@@ -452,7 +444,7 @@
                 {
                     type: 'value',
                     name: '人口 (万)',
-                    min: -1500, max: 1500, // 固定坐标轴以便观察变化
+                    min: -1500, max: 1500, 
                     axisLabel: { formatter: (v) => Math.abs(v) }
                 }
             ],
@@ -480,7 +472,7 @@
         chartMain.setOption(option);
     }
 
-    // 更新小图表 (带高亮当前年份)
+    // 更新小图表
     function updateTrendCharts(trendData, currentYear) {
         const commonOption = (title, data, color) => ({
             title: { show: false },
@@ -532,7 +524,7 @@
             }
             
             // 同龄人竞争
-            html += `你的同龄人(出生)约 <b>${myBirths}</b> 万人。`;
+            html += `你的同龄人(出生)约 <b>${Math.round(myBirths)}</b> 万人。`;
             if (birthYear >= 1962 && birthYear <= 1975) html += ` (婴儿潮一代，人多拥挤)`;
             if (birthYear >= 1990 && birthYear <= 2000) html += ` (竞争最激烈的一代)`;
             if (birthYear >= 2020) html += ` (稀缺的一代，但抚养压力大)`;
@@ -556,7 +548,7 @@
     const kpiMedian = document.getElementById('kpi-median');
     const kpiSex = document.getElementById('kpi-sexratio');
 
-    let cachedTrendData = null; // 缓存趋势数据避免重复计算
+    let cachedTrendData = null; 
 
     function renderAll() {
         const y = parseInt(sliderYear.value);
@@ -580,17 +572,13 @@
         // 3. 更新主图
         updateMainChart(data);
 
-        // 4. 更新趋势图 (仅当TFR改变时重新计算全量趋势，否则只移动标线)
-        // 为了简单，这里每次都刷新标线
+        // 4. 更新趋势图
+        // 如果TFR没变，只更新标线位置；TFR变了则重算曲线
         if (!cachedTrendData || sliderTfr.dataset.lastVal != tfr) {
             cachedTrendData = generateTrendSeries(tfr);
             sliderTfr.dataset.lastVal = tfr;
-            // 只有TFR变了才全量重绘series
-            updateTrendCharts(cachedTrendData, y);
-        } else {
-            // 优化：如果只动了年份，可以用 setOption 只更新 markLine，这里简单起见还是全调
-            updateTrendCharts(cachedTrendData, y);
-        }
+        } 
+        updateTrendCharts(cachedTrendData, y);
 
         // 5. 更新个人报告
         updatePersonalInsight(inputBirth.value, y, tfr);
