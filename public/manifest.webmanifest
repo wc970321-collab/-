@@ -1,0 +1,24 @@
+{
+  "name": "广州花都极简天气",
+  "short_name": "花都天气",
+  "description": "专为广州花都区设计的极简、无广告天气预报，支持点击全屏语音播报、温和暖冷色系，适合日常手机使用。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#FFD700",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1592210454359-9043f067919b?w=192&h=192&fit=crop&auto=format",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1592210454359-9043f067919b?w=512&h=512&fit=crop&auto=format",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

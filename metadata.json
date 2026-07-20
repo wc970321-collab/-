@@ -1,0 +1,6 @@
+{
+  "name": "花都天气",
+  "description": "专为不识字高龄老人设计的极简天气语音播报应用，只显示花都天气，支持点按播报与无障碍大图标。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
